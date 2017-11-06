@@ -1,0 +1,31 @@
+{
+
+  "manifest_version": 2,
+  "name": "Password Manager",
+  "version": "1.0",
+
+  "description": "Password Manager that store,manage your id and password",
+
+  "icons": { //Icons will be done later
+    "48": "icons/Password+48.png"
+  },
+
+  "browser_action": {
+    "browser_style": true,
+    "default_icon": {
+      "48": "icons/Password+48.png",
+      "64": "icons/Password+64.png"
+    },
+    "default_title": "Password Manager +",
+    "default_popup": "webpage/browser-action-popup.html"
+  },
+
+  "applications": {
+    "gecko": {
+      "id": "yeohweizhu@gmail.com",
+      "strict_min_version": "1.0"
+    }
+  },
+
+  "permissions":["contextMenus","activeTab","tabs","storage"] //Request Required Permission in advance 
+}
