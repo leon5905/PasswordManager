@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="/style/browser-action-popup.css">
+  <link rel="stylesheet" href="/style/bootstrap.min.css"/>
+  <link rel="stylesheet" href="/style/animate.css"/>
+  <script src="/script/jquery-3.2.1.min.js"></script>
+  <script src="/script/bootstrap.min.js"></script>
+  <script src="/script/crypto-js.js"></script>
+  <script src="/script/csv.js"></script>
+  <script src="/script/passwordGenerator.js"></script>
+  <script src="/script/browser-action-popup.js"></script>
+  <script src="/script/bootstrap-notify.min.js"></script>
+  <link rel="stylesheet" href="/icons/font-awesome-4.7.0/css/font-awesome.min.css">
+</head>
+<body class="popup-body">
+  <div class="popup-div">
+     <div class="popup-top-bar">
+          <div class="popup-search-bar">
+              <span class="fa fa-search popup-search-display"></span>
+              <input id="popup-search-input" placeholder="Type here to search">
+          </div>
+          <div class="popup-new-item" title="Add New Profile">
+            <div class="popup-new-item-flex">
+             <a class="popup-new-item-a"><i class="fa fa-plus"></i></a>
+            </div>
+          </div>
+      </div>
+      <div class="popup-content">
+        <input id="hiddenInput" class="popup-hidden"></input>
+        <div id="popup-nocontent-search" style="width:100%;height:100%;display:none;justify-content:center;align-items:center">
+          <div>
+            <i class="fa fa-info-circle" style="font-size:12em;display:block;text-align:center"></i>
+            <label style="display:block;text-align:center;font-size:24px;">Result Not Found</label>
+          </div>
+        </div>
+      </div>
+
+    <div class="popup-bottom-bar">
+     <div class="icon-bar">
+       <a class="active icon-bar-item" title="Home"><i class="fa fa-home"></i></a>
+       <a class="icon-bar-item"><i class="fa fa-cog" title="Extra Tools"></i></a>
+       <a class="icon-bar-item" id="popup-btn-seperate" title="Open Password Manager +"><i class="fa fa-external-link"></i></a>
+      </div> 
+    </div>
+  </div>
+</body>
+</html>
+
