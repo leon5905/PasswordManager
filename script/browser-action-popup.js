@@ -149,6 +149,99 @@ var mainWindow = {
     hiddenInputField:null,
 };
 
+var mainPageHelper ={
+    //Currently
+    contentHead: null,
+    mainPageContent:null,
+
+        //Generate Generic Window Header
+        generateMainPageHeader: function(headerStr, leftHandFunction, rightHandFunction, leftHandIconClass, rightHandIconClass){
+            var addNewItemHeader=$('<div></div>'); //Create Header
+            addNewItemHeader.css('height',"45px");
+            addNewItemHeader.css('width',"100%");
+            addNewItemHeader.css('background-color',"#555");
+            addNewItemHeader.css('color',"white");
+    
+            var addNewItemCancel=$("<div></div>"); //Create Cancel Section
+            addNewItemCancel.click(leftHandFunction);
+    
+            addNewItemCancel.hover(function () {
+                addNewItemCancel.css('background-color','grey');
+            }, function () {
+                addNewItemCancel.css('background-color',mainWindow.colorPrimary1);
+            });
+            addNewItemCancel.css('height','100%');
+            addNewItemCancel.css('width','10%');
+            addNewItemCancel.css('display','flex');
+            addNewItemCancel.css('justify-content','center');
+            addNewItemCancel.css('align-items','center');
+            addNewItemCancel.css('cursor','pointer');
+            addNewItemCancel.css('float','left');
+            addNewItemCancel.attr('title','Cancel');
+        
+            var addNewItemCancelLabel=$("<i></i>"); //Create Cancel Label
+            addNewItemCancelLabel.addClass("fa");
+            addNewItemCancelLabel.addClass("fa-times");
+            addNewItemCancelLabel.css('text-align','center');
+            addNewItemCancelLabel.css('font-size','24px');
+        
+            addNewItemCancel.append(addNewItemCancelLabel);
+        
+            var addNewItemWindowTitle=$('<div></div>');//Create Window Title
+            addNewItemWindowTitle.css('float','left');
+            addNewItemWindowTitle.css('width','80%');
+            addNewItemWindowTitle.css('height','100%');
+            addNewItemWindowTitle.css('display','flex');
+            addNewItemWindowTitle.css('text-align','center');
+            addNewItemWindowTitle.css('justify-content','center');
+            addNewItemWindowTitle.css('align-items','center');
+            var titleBarLabelStr = headerStr;
+            var addNewItemWindowTitleLabel=$('<span><b>'+ titleBarLabelStr +'</b></span>');//Create Window Title Label
+            addNewItemWindowTitleLabel.css('color','white');
+            addNewItemWindowTitleLabel.css('font-size',mainWindow.fontSizeWindowTitle);
+            addNewItemWindowTitle.append(addNewItemWindowTitleLabel);
+    
+            var addNewSave=$('<div></div>');
+            addNewSave.click(rightHandFunction);
+            addNewSave.hover(function () {
+                addNewSave.css('background-color',mainWindow.colorGreenLight);
+            }, function () {
+                addNewSave.css('background-color',mainWindow.colorGreen);
+            });
+            addNewSave.css('background-color',mainWindow.colorGreen);
+            addNewSave.css('width','10%');
+            addNewSave.css('height','100%');
+            addNewSave.css('display','flex');
+            addNewSave.css('text-align','center');
+            addNewSave.css('justify-content','center');
+            addNewSave.css('align-items','center');
+            addNewSave.css('float','left');
+            addNewSave.css('cursor','pointer');
+            var addNewSaveLabel = $('<i></i>');
+            addNewSaveLabel.addClass("fa");
+            addNewSaveLabel.addClass(rightHandIconClass);
+            addNewSaveLabel.css('text-align','center');
+            addNewSaveLabel.css('font-size','24px');
+            addNewSave.append(addNewSaveLabel);
+    
+            if (leftHandFunction){
+                addNewItemHeader.append(addNewItemCancel);
+            }
+    
+            addNewItemHeader.append(addNewItemWindowTitle);
+    
+            if (rightHandFunction){
+                addNewItemHeader.append(addNewSave);
+            }
+    
+            if (!leftHandFunction && !rightHandFunction){
+                addNewItemWindowTitle.css('width','100%');
+            }
+    
+            return addNewItemHeader;
+        }
+}
+
 //Add New Item Section
 var addNewItemHelper = {
     //cache of id
@@ -440,7 +533,8 @@ var addNewItemHelper = {
 
         //Password Generator Logic
         if (type===addNewItemHelper.edit || type===addNewItemHelper.new){
-            
+            var addNewPasswordGenerator = this.generatePasswordGenerator(addNewPasswordInput); //Password Generator
+            addNewItemInfoList.append(addNewPasswordGenerator);
         }
 
         /*End of Info Field*/
@@ -632,6 +726,50 @@ var addNewItemHelper = {
                 returnResult.css('color','black');
             }
         )
+
+        return returnResult;
+    },
+
+    generatePasswordGenerator(inputField){
+        var returnResult = $('<div></div>');
+        returnResult.css('background-color','white');
+        returnResult.css('padding','10px 10px');
+        returnResult.css('border-bottom','1px solid rgb(232, 232, 232)');
+        returnResult.css('cursor','pointer');        
+        returnResult.hover(function(){
+            returnResult.css('background-color',mainWindow.colorWhiteDarken);
+        },
+        function(){
+            returnResult.css('background-color','white');
+        });
+        returnResult.click(function(){
+            var body = $('body')
+
+            PasswordGenerator.generatePasswordDiv(function(resultValue){
+                inputField.val(resultValue);
+            }, body, 1004);
+        });
+
+        var div = $('<div></div>');
+        div.css('display','flex');
+        div.css('align-items','center');
+
+        var labelName = "Generate Passowrd";
+
+        var label = $('<label>' + labelName + '</label>');
+        label.css('color','#777777');
+        label.css('font-size','13px');
+        label.css('display','block');
+        label.css('cursor','pointer');
+        label.css('width','100%');
+
+        var pointerIcon = $('<span></span>');
+        pointerIcon.addClass('fa');
+        pointerIcon.addClass('fa-caret-right');
+
+        div.append(label);
+        div.append(pointerIcon);
+        returnResult.append(div);
 
         return returnResult;
     },
