@@ -247,7 +247,7 @@ var mainWindow = {
     searchEmptyDiv:null,
     hiddenInputField:null,
 
-    reintialize:function(){ //Load before dom is ready
+    preintialize:function(){ //Load before dom is ready
         //Load storage area
         var ywzPMStorage = browser.storage.sync.get(
             {
