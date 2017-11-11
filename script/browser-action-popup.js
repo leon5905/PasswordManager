@@ -117,6 +117,105 @@ var mainWindow = {
         });
     },
 
+    saveData:function(url,name,username,password,note,favicon){
+        mainWindow.saveDataWithIndex(url,name,username,password,note,favicon,this.recordList.length);
+    },
+
+    saveDataWithIndex:function(url,name,username,password,note,favicon,index){
+        if (!favicon){
+            favicon = mainWindow.deafultFavIconURL;
+        }
+
+        var obj = {url,name,username,password,note,favicon}
+        this.recordList[index] = obj;
+
+        mainWindow.recordList.sort(function(a,b){ //Sort it
+            var textA = a.name.toUpperCase();
+            var textB = b.name.toUpperCase();
+
+            var textC = a.username.toUpperCase();
+            var textD = b.username.toUpperCase();
+            if (textA < textB) return -1;
+            else if (textA > textB) return 1;
+            else if (textC < textD) return -1;
+            else if (textC > textD) return 1;
+            else return 0;
+        });
+
+        browser.storage.sync.set({
+            recordList:  mainWindow.encryptList(mainWindow.recordList)
+        });
+
+        mainWindow.manualSyncUpdate();
+    },
+
+    saveDataAll(){
+        browser.storage.sync.set({
+            recordList:  mainWindow.encryptList(mainWindow.recordList)
+        });
+    },
+
+    deleteDataByIndex:function(index){
+        mainWindow.recordList.splice(index,1);
+
+        browser.storage.sync.set({
+            recordList:  mainWindow.encryptList(mainWindow.recordList)
+        });
+
+        mainWindow.manualSyncUpdate();
+    },
+
+    encryptList(recordList){
+        // var encryptList = CryptoJS.AES.encrypt(JSON.stringify(recordList),this.masterKey).toString();
+
+        var ciphertext = CryptoJS.AES.encrypt(JSON.stringify(recordList),this.masterKey);
+
+        return ciphertext.toString();
+    },
+
+    decrpytList(encrpytList){
+        // console.log('Decrypting List '+ encrpytList);
+        if (!encrpytList) return encrpytList;
+
+            // Decrypt
+            var bytes  = CryptoJS.AES.decrypt(encrpytList, this.masterKey);
+            var decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+        // console.log('Decrpyted List' + decryptedData);
+
+        return decryptedData;
+    },
+
+    manualSyncUpdate(){ //Sometime the onchange listner is broken
+        // mainWindow.recordList.sort(function(a,b){
+        //     var textA = a.name.toUpperCase();
+        //     var textB = b.name.toUpperCase();
+
+        //     var textC = a.username.toUpperCase();
+        //     var textD = b.username.toUpperCase();
+        //     if (textA < textB) return -1;
+        //     else if (textA > textB) return 1;
+        //     else if (textC < textD) return -1;
+        //     else if (textC > textD) return 1;
+        //     else return 0;
+        // });
+
+        mainPageHelper.loadMainPage(mainWindow.recordList);
+
+        // mainWindow.storageChangedListener('',mainWindow.recordList);
+    },
+
+    storageChangedListener:function(changes, area) {
+        // console.log('storage changed');
+        var changedItems = Object.keys(changes);
+       
+        for (var item of changedItems) {
+            mainWindow.recordList = mainWindow.decrpytList(changes[item].newValue);
+        }
+
+        mainPageHelper.loadMainPage(mainWindow.recordList);
+    },
+
     addNewItemWindow:null,
     addNewItemView:null,
     addNewItemEdit:null,
@@ -147,12 +246,45 @@ var mainWindow = {
     serachInput:null,
     searchEmptyDiv:null,
     hiddenInputField:null,
+
+    reintialize:function(){ //Load before dom is ready
+        //Load storage area
+        var ywzPMStorage = browser.storage.sync.get(
+            {
+                recordList: mainWindow.encryptList([])
+            }
+        );
+        ywzPMStorage.then(function(item){
+            // console.log('Loading Storage from sync');
+            // console.log(item.recordList);
+            if (item){
+                mainWindow.recordList = mainWindow.decrpytList(item.recordList);
+            }
+        
+            mainWindow.manualSyncUpdate();
+            // mainPageHelper.loadMainPage(mainWindow.recordList);
+            browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
+        },
+        function(error){
+            console.log(error)
+        
+            mainWindow.manualSyncUpdate();
+            // mainPageHelper.loadMainPage(mainWindow.recordList);
+            browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
+        });
+    }
 };
+
+mainWindow.preintialize();
 
 var mainPageHelper ={
     //Currently
     contentHead: null,
     mainPageContent:null,
+  
+      loadMainPage:function(recordList){
+        //TO BE IMPLEMENTED ... Load the main page of the extension
+      },
 
         //Generate Generic Window Header
         generateMainPageHeader: function(headerStr, leftHandFunction, rightHandFunction, leftHandIconClass, rightHandIconClass){
@@ -407,6 +539,10 @@ var addNewItemHelper = {
                     faviconSource = mainWindow.deafultFavIconURL;
                 }
 
+                mainWindow.saveDataWithIndex(targetDiv.find('#'+addNewItemHelper.urlInputId).val(),targetDiv.find('#'+addNewItemHelper.nameInputId).val(),targetDiv.find('#'+addNewItemHelper.usernameInputId).val(),
+                targetDiv.find('#'+addNewItemHelper.passwordInputId).val(), targetDiv.find('#'+addNewItemHelper.noteInputId).val(),faviconSource, index);
+
+
                 mainWindow.pushNotification('New Record Saved');
             }
             else if (type==addNewItemHelper.edit){
@@ -415,6 +551,10 @@ var addNewItemHelper = {
                 if (faviconSource === ''){
                     faviconSource = mainWindow.deafultFavIconURL;
                 }
+
+                mainWindow.saveDataWithIndex(targetDiv.find('#'+addNewItemHelper.urlInputId).val(),targetDiv.find('#'+addNewItemHelper.nameInputId).val(),targetDiv.find('#'+addNewItemHelper.usernameInputId).val(),
+                targetDiv.find('#'+addNewItemHelper.passwordInputId).val(), targetDiv.find('#'+addNewItemHelper.noteInputId).val(),faviconSource, index);
+
 
                 mainWindow.pushNotification('Record Edited');  
             }
