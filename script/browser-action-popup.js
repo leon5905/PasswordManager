@@ -65,6 +65,19 @@ $(document).ready(function(){
 
 //Collection of global var
 var mainWindow = {
+    download:function (filename, text) {
+        var element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+      
+        element.style.display = 'none';
+        document.body.appendChild(element);
+      
+        element.click();
+      
+        document.body.removeChild(element);
+    },
+
     pushNotification: function (messageString, notificationType, seconds){
 
         $.notify({
@@ -115,6 +128,48 @@ var mainWindow = {
                 '<a href="{3}" target="{4}" data-notify="url"></a>' +
             '</div>' 
         });
+    },
+
+    getTabsInfo: function(callback){
+        var getting = browser.windows.getCurrent({populate: true});
+        getting.then(callback, null);
+    },
+
+    extractRootDomain:function(url) {
+        var domain = mainWindow.extractHostname(url),
+            splitArr = domain.split('.'),
+            arrLen = splitArr.length;
+    
+        //extracting the root domain here
+        //if there is a subdomain 
+        if (arrLen > 2) {
+            domain = splitArr[arrLen - 2] + '.' + splitArr[arrLen - 1];
+            //check to see if it's using a Country Code Top Level Domain (ccTLD) (i.e. ".me.uk")
+            if (splitArr[arrLen - 1].length == 2 && splitArr[arrLen - 1].length == 2) {
+                //this is using a ccTLD
+                domain = splitArr[arrLen - 3] + '.' + domain;
+            }
+        }
+        return domain;
+    },
+
+    extractHostname:function(url) {
+        var hostname;
+        //find & remove protocol (http, ftp, etc.) and get hostname
+    
+        if (url.indexOf("://") > -1) {
+            hostname = url.split('/')[2];
+        }
+        else {
+            hostname = url.split('/')[0];
+        }
+    
+        //find & remove port number
+        hostname = hostname.split(':')[0];
+        //find & remove "?"
+        hostname = hostname.split('?')[0];
+    
+        return hostname;
     },
 
     saveData:function(url,name,username,password,note,favicon){
@@ -272,6 +327,18 @@ var mainWindow = {
             // mainPageHelper.loadMainPage(mainWindow.recordList);
             browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
         });
+
+        //Load URL, Title and Favicon
+        mainWindow.getTabsInfo(function(windowInfo){
+            tabInfo = windowInfo.tabs;
+            for (var i = 0; i < windowInfo.tabs.length; i++) {
+                if(!tabInfo[i].active) continue;
+                mainWindow.currentPageURL = tabInfo[i].url;
+                mainWindow.currentPageTitle = tabInfo[i].title;
+                mainWindow.currentPageFavIconURL = tabInfo[i].favIconUrl;
+                break;
+            }
+        })
     }
 };
 
