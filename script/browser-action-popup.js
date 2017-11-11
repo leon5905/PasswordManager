@@ -328,6 +328,7 @@ var mainWindow = {
             browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
         });
 
+
         //Load URL, Title and Favicon
         mainWindow.getTabsInfo(function(windowInfo){
             tabInfo = windowInfo.tabs;
@@ -342,104 +343,255 @@ var mainWindow = {
     }
 };
 
+//Initialize mainWindow
 mainWindow.preintialize();
+// data=[];
+// console.log(data);
+// console.log('Testing');
+// // Encrypt
+// var ciphertext = CryptoJS.AES.encrypt(JSON.stringify(data), 'secret key 123');
+// // Decrypt
+// var bytes  = CryptoJS.AES.decrypt(ciphertext.toString(), 'secret key 123');
+// var decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+// console.log(decryptedData);
 
-var mainPageHelper ={
-    //Currently
+//Main Page Section
+var mainPageHelper = {
     contentHead: null,
     mainPageContent:null,
-  
-      loadMainPage:function(recordList){
-        //TO BE IMPLEMENTED ... Load the main page of the extension
-      },
 
-        //Generate Generic Window Header
-        generateMainPageHeader: function(headerStr, leftHandFunction, rightHandFunction, leftHandIconClass, rightHandIconClass){
-            var addNewItemHeader=$('<div></div>'); //Create Header
-            addNewItemHeader.css('height',"45px");
-            addNewItemHeader.css('width',"100%");
-            addNewItemHeader.css('background-color',"#555");
-            addNewItemHeader.css('color',"white");
-    
-            var addNewItemCancel=$("<div></div>"); //Create Cancel Section
-            addNewItemCancel.click(leftHandFunction);
-    
-            addNewItemCancel.hover(function () {
-                addNewItemCancel.css('background-color','grey');
-            }, function () {
-                addNewItemCancel.css('background-color',mainWindow.colorPrimary1);
+    searchFunction: function(parameter){ // Will search for match in Name
+        //Go through list, disable and enable visibility
+        var searchDiv = $('body').children('.popup-div').find('.popup-list-section');
+        var allNoResult = true;
+        searchDiv.each(function(){
+            var allRecordDiv = $(this).find('.popup-record-div');
+            var noResult = true;
+            
+            var paraReg =  new RegExp(parameter,'i');
+            allRecordDiv.each(function(){
+                var instance = $(this);
+                if (instance.attr('id')<0){
+                    if (parameter==='' || !parameter){
+                        instance.css('display','block');
+                        noResult=false;
+                        allNoResult=false;
+                    }
+                    else{
+                        instance.css('display','none');
+                    }
+
+                    return;
+                }
+        
+                if (paraReg.test(mainWindow.recordList[instance.attr('id')].username) || paraReg.test(mainWindow.recordList[instance.attr('id')].name)){
+                    instance.css('display','flex');
+                    // console.log(paraReg.test(mainWindow.recordList[instance.attr('id')].name));
+                    noResult=false;
+                    allNoResult=false;
+                }
+                else{
+                    // instance.css('visibility','hidden');
+                    instance.css('display','none');
+                }
             });
-            addNewItemCancel.css('height','100%');
-            addNewItemCancel.css('width','10%');
-            addNewItemCancel.css('display','flex');
-            addNewItemCancel.css('justify-content','center');
-            addNewItemCancel.css('align-items','center');
-            addNewItemCancel.css('cursor','pointer');
-            addNewItemCancel.css('float','left');
-            addNewItemCancel.attr('title','Cancel');
-        
-            var addNewItemCancelLabel=$("<i></i>"); //Create Cancel Label
-            addNewItemCancelLabel.addClass("fa");
-            addNewItemCancelLabel.addClass("fa-times");
-            addNewItemCancelLabel.css('text-align','center');
-            addNewItemCancelLabel.css('font-size','24px');
-        
-            addNewItemCancel.append(addNewItemCancelLabel);
-        
-            var addNewItemWindowTitle=$('<div></div>');//Create Window Title
-            addNewItemWindowTitle.css('float','left');
-            addNewItemWindowTitle.css('width','80%');
-            addNewItemWindowTitle.css('height','100%');
-            addNewItemWindowTitle.css('display','flex');
-            addNewItemWindowTitle.css('text-align','center');
-            addNewItemWindowTitle.css('justify-content','center');
-            addNewItemWindowTitle.css('align-items','center');
-            var titleBarLabelStr = headerStr;
-            var addNewItemWindowTitleLabel=$('<span><b>'+ titleBarLabelStr +'</b></span>');//Create Window Title Label
-            addNewItemWindowTitleLabel.css('color','white');
-            addNewItemWindowTitleLabel.css('font-size',mainWindow.fontSizeWindowTitle);
-            addNewItemWindowTitle.append(addNewItemWindowTitleLabel);
-    
-            var addNewSave=$('<div></div>');
-            addNewSave.click(rightHandFunction);
-            addNewSave.hover(function () {
-                addNewSave.css('background-color',mainWindow.colorGreenLight);
-            }, function () {
-                addNewSave.css('background-color',mainWindow.colorGreen);
-            });
-            addNewSave.css('background-color',mainWindow.colorGreen);
-            addNewSave.css('width','10%');
-            addNewSave.css('height','100%');
-            addNewSave.css('display','flex');
-            addNewSave.css('text-align','center');
-            addNewSave.css('justify-content','center');
-            addNewSave.css('align-items','center');
-            addNewSave.css('float','left');
-            addNewSave.css('cursor','pointer');
-            var addNewSaveLabel = $('<i></i>');
-            addNewSaveLabel.addClass("fa");
-            addNewSaveLabel.addClass(rightHandIconClass);
-            addNewSaveLabel.css('text-align','center');
-            addNewSaveLabel.css('font-size','24px');
-            addNewSave.append(addNewSaveLabel);
-    
-            if (leftHandFunction){
-                addNewItemHeader.append(addNewItemCancel);
+
+            if (noResult){
+                var thisDiv =  $(this);
+                thisDiv.css('display','none');
             }
-    
-            addNewItemHeader.append(addNewItemWindowTitle);
-    
-            if (rightHandFunction){
-                addNewItemHeader.append(addNewSave);
+            else{
+                var thisDiv =  $(this);
+                thisDiv.css('display','block');
             }
-    
-            if (!leftHandFunction && !rightHandFunction){
-                addNewItemWindowTitle.css('width','100%');
-            }
-    
-            return addNewItemHeader;
+        });
+
+        if (allNoResult){
+            //Display Special Div ?? - remind no result by searching
+            mainWindow.searchEmptyDiv.css('display','flex');
+        }else{
+            //Hide Special Div
+            mainWindow.searchEmptyDiv.css('display','none');
         }
-}
+
+        // if (!parameter || !parameter.trim() || this.length === 0){} //Search bar is empty - Restore relevant div visibility
+    },
+
+    generateMainPageView: function(currentItem,index){
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id',index);
+        div.addClass('popup-record-div');
+
+        var header = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.name);
+        header.find('label').css('color','black');
+        header.css('cursor','pointer');
+        header.attr('title','Auto-fill');
+        header.click(function(){
+            var executableCode = 
+            `
+            var inputList = document.getElementsByTagName("input");
+            var regExpEmail = new RegExp('email', "i");
+            var regExpUsername = new RegExp('username', "i");
+            // var regExpEmail = /email/;
+            for (var i=0; i<inputList.length; i++){
+                var inputField = inputList[i];
+                var inputFieldName = inputField.name.toLowerCase();
+                if (inputField.type === 'password' ||  inputField.type === 'Password' || inputField.type === 'PASSWORD'){
+                    inputField.value = '`+currentItem.password+`'
+                }
+                else if (inputFieldName === 'username' || inputFieldName === 'loginname'|| inputFieldName=== 'login' || inputFieldName === 'email' || inputFieldName === 'user' || inputFieldName === 'identifier' || regExpEmail.test(inputFieldName) || regExpUsername.test(inputFieldName)){
+                        inputField.value = '`+currentItem.username+`';
+                }
+            }
+            `
+
+            mainWindow.pushNotification('Auto-filled');
+
+            var executing = browser.tabs.executeScript({
+                code: executableCode
+            });
+            executing.then(function(){
+            }, 
+            function(error){
+                // alert('Execute Script on Active Tab fail with : ' + error);
+            });
+        });
+
+        var labelUserName = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.username);
+        header.append(labelUserName);
+        header.find('label').each(function () {
+            $(this).css('cursor','pointer');
+            $(this).click(function(e){
+               
+            });
+        });
+
+        div.append(header);
+
+        //Logo Section
+        var logoDiv = $('<div></div>');
+        logoDiv.css('cursor','pointer');
+        logoDiv.attr('title','Launch Website');
+        logoDiv.click(function(){ //Open Website
+            var win = window.open(currentItem.url, '_blank');
+            win.focus();
+        });
+        logoDiv.css('padding','0px 10px 0px 0px');
+        var img = $('<img></img>');
+        img.attr('src',currentItem.favicon);
+        img.attr('width','24');
+        img.attr('height','24');
+        // img.css('border-radius','50%');
+        logoDiv.append(img);
+        div.prepend(logoDiv);
+
+        //Action Section
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.username,'fa-user','Copy Username'));
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.password,'fa-key','Copy Password'));
+        div.append(addNewItemHelper.generateContentSectionEditContent(currentItem,index));
+
+        return div;
+    },
+
+    generateMainPageViewNoItem: function(){
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id','-1');
+        div.addClass('popup-record-div');
+
+        var noitemLabel = $('<label>There is no item on the list.</label>');
+        div.append(noitemLabel);
+
+
+        return div;
+    },
+
+    //Generate Generic Window Header
+    generateMainPageHeader: function(headerStr, leftHandFunction, rightHandFunction, leftHandIconClass, rightHandIconClass){
+        var addNewItemHeader=$('<div></div>'); //Create Header
+        addNewItemHeader.css('height',"45px");
+        addNewItemHeader.css('width',"100%");
+        addNewItemHeader.css('background-color',"#555");
+        addNewItemHeader.css('color',"white");
+
+        var addNewItemCancel=$("<div></div>"); //Create Cancel Section
+        addNewItemCancel.click(leftHandFunction);
+
+        addNewItemCancel.hover(function () {
+            addNewItemCancel.css('background-color','grey');
+        }, function () {
+            addNewItemCancel.css('background-color',mainWindow.colorPrimary1);
+        });
+        addNewItemCancel.css('height','100%');
+        addNewItemCancel.css('width','10%');
+        addNewItemCancel.css('display','flex');
+        addNewItemCancel.css('justify-content','center');
+        addNewItemCancel.css('align-items','center');
+        addNewItemCancel.css('cursor','pointer');
+        addNewItemCancel.css('float','left');
+        addNewItemCancel.attr('title','Cancel');
+    
+        var addNewItemCancelLabel=$("<i></i>"); //Create Cancel Label
+        addNewItemCancelLabel.addClass("fa");
+        addNewItemCancelLabel.addClass("fa-times");
+        addNewItemCancelLabel.css('text-align','center');
+        addNewItemCancelLabel.css('font-size','24px');
+    
+        addNewItemCancel.append(addNewItemCancelLabel);
+    
+        var addNewItemWindowTitle=$('<div></div>');//Create Window Title
+        addNewItemWindowTitle.css('float','left');
+        addNewItemWindowTitle.css('width','80%');
+        addNewItemWindowTitle.css('height','100%');
+        addNewItemWindowTitle.css('display','flex');
+        addNewItemWindowTitle.css('text-align','center');
+        addNewItemWindowTitle.css('justify-content','center');
+        addNewItemWindowTitle.css('align-items','center');
+        var titleBarLabelStr = headerStr;
+        var addNewItemWindowTitleLabel=$('<span><b>'+ titleBarLabelStr +'</b></span>');//Create Window Title Label
+        addNewItemWindowTitleLabel.css('color','white');
+        addNewItemWindowTitleLabel.css('font-size',mainWindow.fontSizeWindowTitle);
+        addNewItemWindowTitle.append(addNewItemWindowTitleLabel);
+
+        var addNewSave=$('<div></div>');
+        addNewSave.click(rightHandFunction);
+        addNewSave.hover(function () {
+            addNewSave.css('background-color',mainWindow.colorGreenLight);
+        }, function () {
+            addNewSave.css('background-color',mainWindow.colorGreen);
+        });
+        addNewSave.css('background-color',mainWindow.colorGreen);
+        addNewSave.css('width','10%');
+        addNewSave.css('height','100%');
+        addNewSave.css('display','flex');
+        addNewSave.css('text-align','center');
+        addNewSave.css('justify-content','center');
+        addNewSave.css('align-items','center');
+        addNewSave.css('float','left');
+        addNewSave.css('cursor','pointer');
+        var addNewSaveLabel = $('<i></i>');
+        addNewSaveLabel.addClass("fa");
+        addNewSaveLabel.addClass(rightHandIconClass);
+        addNewSaveLabel.css('text-align','center');
+        addNewSaveLabel.css('font-size','24px');
+        addNewSave.append(addNewSaveLabel);
+
+        if (leftHandFunction){
+            addNewItemHeader.append(addNewItemCancel);
+        }
+
+        addNewItemHeader.append(addNewItemWindowTitle);
+
+        if (rightHandFunction){
+            addNewItemHeader.append(addNewSave);
+        }
+
+        if (!leftHandFunction && !rightHandFunction){
+            addNewItemWindowTitle.css('width','100%');
+        }
+
+        return addNewItemHeader;
+    }
+};
 
 //Add New Item Section
 var addNewItemHelper = {
@@ -606,9 +758,8 @@ var addNewItemHelper = {
                     faviconSource = mainWindow.deafultFavIconURL;
                 }
 
-                mainWindow.saveDataWithIndex(targetDiv.find('#'+addNewItemHelper.urlInputId).val(),targetDiv.find('#'+addNewItemHelper.nameInputId).val(),targetDiv.find('#'+addNewItemHelper.usernameInputId).val(),
-                targetDiv.find('#'+addNewItemHelper.passwordInputId).val(), targetDiv.find('#'+addNewItemHelper.noteInputId).val(),faviconSource, index);
-
+                mainWindow.saveData(targetDiv.find('#'+addNewItemHelper.urlInputId).val(),targetDiv.find('#'+addNewItemHelper.nameInputId).val(),targetDiv.find('#'+addNewItemHelper.usernameInputId).val(),
+                    targetDiv.find('#'+addNewItemHelper.passwordInputId).val(), targetDiv.find('#'+addNewItemHelper.noteInputId).val(), faviconSource);
 
                 mainWindow.pushNotification('New Record Saved');
             }
@@ -621,7 +772,6 @@ var addNewItemHelper = {
 
                 mainWindow.saveDataWithIndex(targetDiv.find('#'+addNewItemHelper.urlInputId).val(),targetDiv.find('#'+addNewItemHelper.nameInputId).val(),targetDiv.find('#'+addNewItemHelper.usernameInputId).val(),
                 targetDiv.find('#'+addNewItemHelper.passwordInputId).val(), targetDiv.find('#'+addNewItemHelper.noteInputId).val(),faviconSource, index);
-
 
                 mainWindow.pushNotification('Record Edited');  
             }
@@ -742,6 +892,46 @@ var addNewItemHelper = {
         if (type===addNewItemHelper.edit || type===addNewItemHelper.new){
             var addNewPasswordGenerator = this.generatePasswordGenerator(addNewPasswordInput); //Password Generator
             addNewItemInfoList.append(addNewPasswordGenerator);
+
+            //Fav Icon
+            var favIconDiv = this.generateContentSectionStandardDiv();
+            var favIconHeader = this.generateContentSectionStandardHeader("Display Icon URL");
+
+            var favIconDiv2 = $('<div></div>');
+            favIconDiv2.css("display","flex");
+            var favIconDisplay =  $('<img></img>');
+            favIconDisplay.css("width","24px");
+            favIconDisplay.css("height","24px");
+
+            var favIconURLInput = this.generateContentSectionInputField(addNewItemHelper.favIconId,'text',inputBool);
+            favIconURLInput.on('input',function(){
+                var url = $(this).val();
+                favIconDisplay.attr('src',url);
+
+                if (url=== ''){
+                    favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+                }
+            });
+
+            if (type===addNewItemHelper.edit){
+                var item = mainWindow.recordList[index];
+
+                favIconURLInput.val(item.favicon);
+            }
+            else{
+                favIconURLInput.val(mainWindow.currentPageFavIconURL);
+            }
+
+            favIconDisplay.attr('src',favIconURLInput.val());
+            if (favIconURLInput.val()=== ''){
+                favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+            }
+
+            favIconDiv2.append(favIconDisplay);
+            favIconDiv2.append(favIconURLInput);
+            favIconHeader.append(favIconDiv2);
+            favIconDiv.append(favIconHeader);
+            addNewItemInfoList.append(favIconDiv);
         }
 
         /*End of Info Field*/
@@ -769,7 +959,22 @@ var addNewItemHelper = {
         /*End of Note Section */
 
         /*Delete Section*/
-        //Wait first
+        var addNewItemDeleteSection;
+        if (type===addNewItemHelper.edit){
+            //Delete Functionality
+            addNewItemDeleteSection=$('<div></div');//Section Note
+            addNewItemDeleteSection.addClass('popup-list-section');
+            addNewItemDeleteSection.append(this.generateContentSectionHeader("Delete"));
+
+            var addNewItemDeleteList=$('<div></div>');
+            addNewItemDeleteList.css('border-top','2px solid lightgrey');
+
+            var addNewDeleteFunction = this.generateDeleteSection(index); //Delete 
+            addNewItemDeleteList.append(addNewDeleteFunction);
+
+            addNewItemDeleteSection.append(addNewItemDeleteList);
+    
+        }
         /*End of Delete Section */
 
         /*Start of Filling in form logic*/
@@ -787,11 +992,31 @@ var addNewItemHelper = {
         /*End of Auto filling in form logic */
         
         parent.append(addNewItemDiv); //Add generated tab to parent
-    
+        if (index>=0){ //Punch in all the correct value according to index
+            var item = mainWindow.recordList[index];
 
+            addNewItemDiv.find('#'+addNewItemHelper.urlInputId).val(item.url);
+            addNewItemDiv.find('#'+addNewItemHelper.nameInputId).val(item.name);
+            addNewItemDiv.find('#'+addNewItemHelper.usernameInputId).val(item.username);
+            addNewItemDiv.find('#'+addNewItemHelper.passwordInputId).val(item.password);
+            addNewItemDiv.find('#'+addNewItemHelper.noteInputId).val(item.note);
+            addNewItemDiv.find('#'+addNewItemHelper.favIconId).val(item.favicon);
+        }
+    
+        //Cache the created window
+        if (type === addNewItemHelper.view)
+            mainWindow.addNewItemView = addNewItemDiv;
+        else if (type === addNewItemHelper.edit)
+            mainWindow.addNewItemEdit = addNewItemDiv;
+        else
             mainWindow.addNewItemWindow = addNewItemDiv; 
     
         setTimeout(function(){ //Move window to the top
+            if (type === addNewItemHelper.view)
+                mainWindow.addNewItemView.css('top','0%');
+            else if (type === addNewItemHelper.edit)
+                mainWindow.addNewItemEdit.css('top','0%');
+            else
                 mainWindow.addNewItemWindow.css('top','0%');
         }, 100);
     },
@@ -937,6 +1162,72 @@ var addNewItemHelper = {
         return returnResult;
     },
 
+    generateContentSectionCopyContent(targetValue, fontAwesomeIconClass, titleToolhint){
+        var returnResult = $('<span></span>');
+        returnResult.addClass('fa');
+        returnResult.addClass(fontAwesomeIconClass);
+
+        returnResult.css('float','right');
+        returnResult.css('font-size','18px');
+        returnResult.css('cursor','pointer');
+        returnResult.css('margin-left','5px');
+
+        returnResult.attr('title',titleToolhint);
+
+        returnResult.click(function(){
+            mainWindow.hiddenInputField = $(document.body).find('#hiddenInput');
+            var targetInput = mainWindow.hiddenInputField;
+
+            targetInput.val(targetValue);
+
+            targetInput.select();
+            document.execCommand("copy");
+            targetInput.val();
+            mainWindow.pushNotification('Copied to Clipboard');
+        });
+
+        returnResult.hover(
+            function(){
+                returnResult.css('color',mainWindow.colorBlackWhiten);
+            },
+            function(){
+                returnResult.css('color','black');
+            }
+        )
+
+        return returnResult;
+    },
+
+    generateContentSectionEditContent(currentItem, index){
+        var returnResult = $('<span></span>');
+
+        returnResult.addClass('fa');
+        returnResult.addClass('fa-edit');
+
+        returnResult.css('float','right');
+        returnResult.css('font-size','18px');
+        returnResult.css('cursor','pointer');
+        returnResult.css('margin-left','5px');
+
+        returnResult.attr('title','View Content');
+
+        returnResult.click(function(){
+            addNewItemHelper.addNewItem($(".popup-body"), addNewItemHelper.view, index);
+        });
+
+        returnResult.hover(
+            function(){
+                returnResult.css('color',mainWindow.colorBlackWhiten);
+            },
+            function(){
+                returnResult.css('color','black');
+            }
+        )
+
+        return returnResult;
+    },
+
+
     generatePasswordGenerator(inputField){
         var returnResult = $('<div></div>');
         returnResult.css('background-color','white');
@@ -980,6 +1271,58 @@ var addNewItemHelper = {
 
         return returnResult;
     },
+
+    //Specific Implementation
+    generateDeleteSection(index){
+        var returnResult = $('<div></div>');
+        returnResult.css('background-color','white');
+        returnResult.css('padding','10px 10px');
+        returnResult.css('cursor','pointer');
+        returnResult.hover(function(){
+            returnResult.css('background-color',mainWindow.colorWhiteDarken);
+        },
+        function(){
+            returnResult.css('background-color','white');
+        });
+        returnResult.click(function(){
+            mainWindow.deleteDataByIndex(index);
+
+            mainWindow.addNewItemEdit.css('top','100%');
+            mainWindow.addNewItemView.css('top','100%');
+
+            mainWindow.pushNotification('Reocrd Deleted');
+
+            setTimeout(function(){
+                    mainWindow.addNewItemView.remove();
+                    mainWindow.addNewItemView = null;
+
+                    mainWindow.addNewItemEdit.remove();
+                    mainWindow.addNewItemEdit = null;
+            }, 500);
+            
+        });
+
+        var div = $("<div></div>");
+
+
+        var labelName = "Delete Item";
+        var label = $('<label>' + labelName + '</label>');
+        label.css('color','red');
+        label.css('cursor','pointer');
+        label.css('font-size','13px');
+        label.css('display','inline');
+        label.css('margin-left','5px');
+
+        var deleteIcon = $('<i></i>');
+        deleteIcon.addClass('fa');
+        deleteIcon.addClass('fa-trash');
+        deleteIcon.css('color','red');
+
+        div.append(deleteIcon);
+        div.append(label);
+        returnResult.append(div);
+        return returnResult;
+    }
 
     
 }
