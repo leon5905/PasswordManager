@@ -360,6 +360,104 @@ var mainPageHelper = {
     contentHead: null,
     mainPageContent:null,
 
+    loadMainPage:function(recordList){ //Load the main page by ini / reinitialize the main page content
+        mainPageHelper.contentHead = $('#popup-home-content'); //Load the reference
+        if (!( typeof mainPageContent === "undefined") && mainPageContent!=null) {
+            mainPageContent.remove(); //Remove previous content
+        }
+
+        //Seperate List
+        currentListIndex = [];
+        otherListIndex = [];
+        for (var i=0;i<recordList.length;i++){
+            //Comparing current url and stored url...
+            var storedURL = recordList[i].url;
+            storedURL = mainWindow.extractRootDomain(storedURL);
+            // var storedURLRegExp = new RegExp(storedURL,'i');
+
+            var currentURL = mainWindow.currentPageURL;
+            currentURL = mainWindow.extractRootDomain(currentURL);
+            var currentURLRegExp = new RegExp(currentURL,'i');
+
+            // var bool1 = currentURLRegExp.test(storedURL);
+            var bool2 = currentURLRegExp.test(storedURL);
+
+            if (bool2){ //If true
+                
+                currentListIndex[currentListIndex.length] = i;
+            }
+            else{
+                otherListIndex[otherListIndex.length] = i;
+            }
+        }
+
+        //Printing Result for validation
+        // console.log("Printing Current List");
+        // for (var i=0;i<currentListIndex.length;i++){
+        //     console.log(mainWindow.recordList[currentListIndex[i]]);
+        // }
+        // console.log("Printing Other List");
+        // for (var i=0;i<otherListIndex.length;i++){
+        //     console.log(mainWindow.recordList[otherListIndex[i]]);
+        // }
+
+        var mainDiv = $('<div></div>');
+        mainPageContent = mainDiv;
+
+        //Current Tab Section
+        var currentTabSection=$('<div></div');
+        currentTabSection.addClass('popup-list-section');
+        currentTabSection.append(addNewItemHelper.generateContentSectionHeader("Suggested Login"));
+        var currentTabList=$('<div></div>');
+        currentTabList.css('border-top','2px solid lightgrey');
+        currentTabList.css('border-bottom','2px solid lightgrey');
+
+        if (currentListIndex.length==0){ //Append No record
+            //TODO
+            currentTabList.append(mainPageHelper.generateMainPageViewNoItem());
+        }
+        else{
+            for (var i=0;i<currentListIndex.length;i++){ //Append correponsding item
+                var currentItem = (mainWindow.recordList[currentListIndex[i]]);
+                currentTabList.append(mainPageHelper.generateMainPageView(currentItem,currentListIndex[i]));
+            }
+        }
+
+        currentTabSection.append(currentTabList);
+        //End of Currentab Section
+
+        //Current Tab Section
+        var otherTabSection=$('<div></div');
+        otherTabSection.addClass('popup-list-section');
+        otherTabSection.append(addNewItemHelper.generateContentSectionHeader("Others"));
+        var otherTabList=$('<div></div>');
+        otherTabList.css('border-top','2px solid lightgrey');
+        otherTabList.css('border-bottom','2px solid lightgrey');
+        otherTabSection.append(otherTabList);//End of Currentab Section
+
+        if (otherListIndex.length==0){ //Append no record
+            //TODO
+            otherTabList.append(mainPageHelper.generateMainPageViewNoItem());
+        }
+        else{
+            for (var i=0;i<otherListIndex.length;i++){ //Append correponsding item
+                var currentItem = (mainWindow.recordList[otherListIndex[i]]);
+                otherTabList.append(mainPageHelper.generateMainPageView(currentItem,otherListIndex[i]));
+
+            }
+        }
+        //End of other tab section
+
+        mainDiv.append(currentTabSection);
+        mainDiv.append(otherTabSection);
+
+        mainPageHelper.contentHead.append(mainDiv); //Append the final form to the main view
+
+        //Synchonise and reset most stuff
+        mainWindow.searchEmptyDiv.css('display','none'); //Hide no search result
+        mainPageHelper.searchFunction(mainWindow.searchInput.val());
+    },
+
     searchFunction: function(parameter){ // Will search for match in Name
         //Go through list, disable and enable visibility
         var searchDiv = $('body').children('.popup-div').find('.popup-list-section');
