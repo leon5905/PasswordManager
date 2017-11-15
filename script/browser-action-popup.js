@@ -442,6 +442,7 @@ var mainWindow = {
                 browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
             });
 
+
         //Load URL, Title and Favicon
         mainWindow.getTabsInfo(function (windowInfo) {
             tabInfo = windowInfo.tabs;
@@ -456,16 +457,225 @@ var mainWindow = {
     }
 };
 
+//Initialize mainWindow
 mainWindow.preintialize();
+// data=[];
+// console.log(data);
+// console.log('Testing');
+// // Encrypt
+// var ciphertext = CryptoJS.AES.encrypt(JSON.stringify(data), 'secret key 123');
+// // Decrypt
+// var bytes  = CryptoJS.AES.decrypt(ciphertext.toString(), 'secret key 123');
+// var decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+// console.log(decryptedData);
 
+//Main Page Section
 var mainPageHelper = {
-    //Currently
     contentHead: null,
-    mainPageContent: null,
+    mainPageContent:null,
 
-    loadMainPage: function (recordList) {
-        //TO BE IMPLEMENTED ... Load the main page of the extension
+    loadMainPage:function(recordList){ //Load the main page by ini / reinitialize the main page content
+        mainPageHelper.contentHead = $('#popup-home-content'); //Load the reference
+        if (!( typeof mainPageContent === "undefined") && mainPageContent!=null) {
+            mainPageContent.remove(); //Remove previous content
+        }
+
+        //Seperate List
+        currentListIndex = [];
+        otherListIndex = [];
+        for (var i=0;i<recordList.length;i++){
+            //Comparing current url and stored url...
+            var storedURL = recordList[i].url;
+            storedURL = mainWindow.extractRootDomain(storedURL);
+            // var storedURLRegExp = new RegExp(storedURL,'i');
+
+            var currentURL = mainWindow.currentPageURL;
+            currentURL = mainWindow.extractRootDomain(currentURL);
+            var currentURLRegExp = new RegExp(currentURL,'i');
+
+            // var bool1 = currentURLRegExp.test(storedURL);
+            var bool2 = currentURLRegExp.test(storedURL);
+
+            if (bool2){ //If true
+                
+                currentListIndex[currentListIndex.length] = i;
+            }
+            else{
+                otherListIndex[otherListIndex.length] = i;
+            }
+        }
+
+        //Printing Result for validation
+        // console.log("Printing Current List");
+        // for (var i=0;i<currentListIndex.length;i++){
+        //     console.log(mainWindow.recordList[currentListIndex[i]]);
+        // }
+        // console.log("Printing Other List");
+        // for (var i=0;i<otherListIndex.length;i++){
+        //     console.log(mainWindow.recordList[otherListIndex[i]]);
+        // }
+
+        var mainDiv = $('<div></div>');
+        mainPageContent = mainDiv;
+
+        //Current Tab Section
+        var currentTabSection=$('<div></div');
+        currentTabSection.addClass('popup-list-section');
+        currentTabSection.append(addNewItemHelper.generateContentSectionHeader("Suggested Login"));
+        var currentTabList=$('<div></div>');
+        currentTabList.css('border-top','2px solid lightgrey');
+        currentTabList.css('border-bottom','2px solid lightgrey');
+
+        if (currentListIndex.length==0){ //Append No record
+            //TODO
+            currentTabList.append(mainPageHelper.generateMainPageViewNoItem());
+        }
+        else{
+            for (var i=0;i<currentListIndex.length;i++){ //Append correponsding item
+                var currentItem = (mainWindow.recordList[currentListIndex[i]]);
+                currentTabList.append(mainPageHelper.generateMainPageView(currentItem,currentListIndex[i]));
+            }
+        }
+
+        currentTabSection.append(currentTabList);
+        //End of Currentab Section
+
+        //Current Tab Section
+        var otherTabSection=$('<div></div');
+        otherTabSection.addClass('popup-list-section');
+        otherTabSection.append(addNewItemHelper.generateContentSectionHeader("Others"));
+        var otherTabList=$('<div></div>');
+        otherTabList.css('border-top','2px solid lightgrey');
+        otherTabList.css('border-bottom','2px solid lightgrey');
+        otherTabSection.append(otherTabList);//End of Currentab Section
+
+        if (otherListIndex.length==0){ //Append no record
+            //TODO
+            otherTabList.append(mainPageHelper.generateMainPageViewNoItem());
+        }
+        else{
+            for (var i=0;i<otherListIndex.length;i++){ //Append correponsding item
+                var currentItem = (mainWindow.recordList[otherListIndex[i]]);
+                otherTabList.append(mainPageHelper.generateMainPageView(currentItem,otherListIndex[i]));
+
+            }
+        }
+        //End of other tab section
+
+        mainDiv.append(currentTabSection);
+        mainDiv.append(otherTabSection);
+
+        mainPageHelper.contentHead.append(mainDiv); //Append the final form to the main view
+
+        //Synchonise and reset most stuff
+        mainWindow.searchEmptyDiv.css('display','none'); //Hide no search result
+        mainPageHelper.searchFunction(mainWindow.searchInput.val());
     },
+
+    searchFunction: function(parameter){ // Will search for match in Name
+        //Go through list, disable and enable visibility
+        var searchDiv = $('body').children('.popup-div').find('.popup-list-section');
+        var allNoResult = true;
+        searchDiv.each(function(){
+            var allRecordDiv = $(this).find('.popup-record-div');
+            var noResult = true;
+            
+            var paraReg =  new RegExp(parameter,'i');
+            allRecordDiv.each(function(){
+                var instance = $(this);
+                if (instance.attr('id')<0){
+                    if (parameter==='' || !parameter){
+                        instance.css('display','block');
+                        noResult=false;
+                        allNoResult=false;
+                    }
+                    else{
+                        instance.css('display','none');
+                    }
+
+                    return;
+                }
+        
+                if (paraReg.test(mainWindow.recordList[instance.attr('id')].username) || paraReg.test(mainWindow.recordList[instance.attr('id')].name)){
+                    instance.css('display','flex');
+                    // console.log(paraReg.test(mainWindow.recordList[instance.attr('id')].name));
+                    noResult=false;
+                    allNoResult=false;
+                }
+                else{
+                    // instance.css('visibility','hidden');
+                    instance.css('display','none');
+                }
+            });
+
+            if (noResult){
+                var thisDiv =  $(this);
+                thisDiv.css('display','none');
+            }
+            else{
+                var thisDiv =  $(this);
+                thisDiv.css('display','block');
+            }
+        });
+
+        if (allNoResult){
+            //Display Special Div ?? - remind no result by searching
+            mainWindow.searchEmptyDiv.css('display','flex');
+        }else{
+            //Hide Special Div
+            mainWindow.searchEmptyDiv.css('display','none');
+        }
+
+        // if (!parameter || !parameter.trim() || this.length === 0){} //Search bar is empty - Restore relevant div visibility
+    },
+
+    generateMainPageView: function(currentItem,index){
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id',index);
+        div.addClass('popup-record-div');
+
+        var header = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.name);
+        header.find('label').css('color','black');
+        header.css('cursor','pointer');
+        header.attr('title','Auto-fill');
+        header.click(function(){
+            var executableCode = 
+            `
+            var inputList = document.getElementsByTagName("input");
+            var regExpEmail = new RegExp('email', "i");
+            var regExpUsername = new RegExp('username', "i");
+            // var regExpEmail = /email/;
+            for (var i=0; i<inputList.length; i++){
+                var inputField = inputList[i];
+                var inputFieldName = inputField.name.toLowerCase();
+                if (inputField.type === 'password' ||  inputField.type === 'Password' || inputField.type === 'PASSWORD'){
+                    inputField.value = '`+currentItem.password+`'
+                }
+                else if (inputFieldName === 'username' || inputFieldName === 'loginname'|| inputFieldName=== 'login' || inputFieldName === 'email' || inputFieldName === 'user' || inputFieldName === 'identifier' || regExpEmail.test(inputFieldName) || regExpUsername.test(inputFieldName)){
+                        inputField.value = '`+currentItem.username+`';
+                }
+            }
+            `
+
+            mainWindow.pushNotification('Auto-filled');
+
+            var executing = browser.tabs.executeScript({
+                code: executableCode
+            });
+            executing.then(function(){
+            }, 
+            function(error){
+                // alert('Execute Script on Active Tab fail with : ' + error);
+            });
+        });
+
+        var labelUserName = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.username);
+        header.append(labelUserName);
+        header.find('label').each(function () {
+            $(this).css('cursor','pointer');
+            $(this).click(function(e){
+               
+            });
 
     //Generate Tool Entry
     generateToolPageEntry: function (icon, title, message, color) {
@@ -496,6 +706,37 @@ var mainPageHelper = {
 
         //Logo Section
         var logoDiv = $('<div></div>');
+        logoDiv.css('cursor','pointer');
+        logoDiv.attr('title','Launch Website');
+        logoDiv.click(function(){ //Open Website
+            var win = window.open(currentItem.url, '_blank');
+            win.focus();
+        });
+        logoDiv.css('padding','0px 10px 0px 0px');
+        var img = $('<img></img>');
+        img.attr('src',currentItem.favicon);
+        img.attr('width','24');
+        img.attr('height','24');
+        // img.css('border-radius','50%');
+        logoDiv.append(img);
+        div.prepend(logoDiv);
+
+        //Action Section
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.username,'fa-user','Copy Username'));
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.password,'fa-key','Copy Password'));
+        div.append(addNewItemHelper.generateContentSectionEditContent(currentItem,index));
+
+        return div;
+    },
+
+    generateMainPageViewNoItem: function(){
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id','-1');
+        div.addClass('popup-record-div');
+
+        var noitemLabel = $('<label>There is no item on the list.</label>');
+        div.append(noitemLabel);
+
         var logo = $('<div></div>');
         logo.addClass('fa');
         logo.addClass(icon);
@@ -509,7 +750,7 @@ var mainPageHelper = {
         // img.css('border-radius','50%');
         logoDiv.append(logo);
         div.prepend(logoDiv);
-
+      
         return div;
     },
 
@@ -769,7 +1010,6 @@ var addNewItemHelper = {
                 mainWindow.saveDataWithIndex(targetDiv.find('#' + addNewItemHelper.urlInputId).val(), targetDiv.find('#' + addNewItemHelper.nameInputId).val(), targetDiv.find('#' + addNewItemHelper.usernameInputId).val(),
                     targetDiv.find('#' + addNewItemHelper.passwordInputId).val(), targetDiv.find('#' + addNewItemHelper.noteInputId).val(), faviconSource, index);
 
-
                 mainWindow.pushNotification('New Record Saved');
             }
             else if (type == addNewItemHelper.edit) {
@@ -782,8 +1022,7 @@ var addNewItemHelper = {
                 mainWindow.saveDataWithIndex(targetDiv.find('#' + addNewItemHelper.urlInputId).val(), targetDiv.find('#' + addNewItemHelper.nameInputId).val(), targetDiv.find('#' + addNewItemHelper.usernameInputId).val(),
                     targetDiv.find('#' + addNewItemHelper.passwordInputId).val(), targetDiv.find('#' + addNewItemHelper.noteInputId).val(), faviconSource, index);
 
-
-                mainWindow.pushNotification('Record Edited');
+                mainWindow.pushNotification('Record Edited');  
             }
             else if (type == addNewItemHelper.view) {
                 addNewItemHelper.addNewItem($(".popup-body"), addNewItemHelper.edit, index);
@@ -902,6 +1141,46 @@ var addNewItemHelper = {
         if (type === addNewItemHelper.edit || type === addNewItemHelper.new) {
             var addNewPasswordGenerator = this.generatePasswordGenerator(addNewPasswordInput); //Password Generator
             addNewItemInfoList.append(addNewPasswordGenerator);
+
+            //Fav Icon
+            var favIconDiv = this.generateContentSectionStandardDiv();
+            var favIconHeader = this.generateContentSectionStandardHeader("Display Icon URL");
+
+            var favIconDiv2 = $('<div></div>');
+            favIconDiv2.css("display","flex");
+            var favIconDisplay =  $('<img></img>');
+            favIconDisplay.css("width","24px");
+            favIconDisplay.css("height","24px");
+
+            var favIconURLInput = this.generateContentSectionInputField(addNewItemHelper.favIconId,'text',inputBool);
+            favIconURLInput.on('input',function(){
+                var url = $(this).val();
+                favIconDisplay.attr('src',url);
+
+                if (url=== ''){
+                    favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+                }
+            });
+
+            if (type===addNewItemHelper.edit){
+                var item = mainWindow.recordList[index];
+
+                favIconURLInput.val(item.favicon);
+            }
+            else{
+                favIconURLInput.val(mainWindow.currentPageFavIconURL);
+            }
+
+            favIconDisplay.attr('src',favIconURLInput.val());
+            if (favIconURLInput.val()=== ''){
+                favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+            }
+
+            favIconDiv2.append(favIconDisplay);
+            favIconDiv2.append(favIconURLInput);
+            favIconHeader.append(favIconDiv2);
+            favIconDiv.append(favIconHeader);
+            addNewItemInfoList.append(favIconDiv);
         }
 
         /*End of Info Field*/
@@ -929,7 +1208,22 @@ var addNewItemHelper = {
         /*End of Note Section */
 
         /*Delete Section*/
-        //Wait first
+        var addNewItemDeleteSection;
+        if (type===addNewItemHelper.edit){
+            //Delete Functionality
+            addNewItemDeleteSection=$('<div></div');//Section Note
+            addNewItemDeleteSection.addClass('popup-list-section');
+            addNewItemDeleteSection.append(this.generateContentSectionHeader("Delete"));
+
+            var addNewItemDeleteList=$('<div></div>');
+            addNewItemDeleteList.css('border-top','2px solid lightgrey');
+
+            var addNewDeleteFunction = this.generateDeleteSection(index); //Delete 
+            addNewItemDeleteList.append(addNewDeleteFunction);
+
+            addNewItemDeleteSection.append(addNewItemDeleteList);
+    
+        }
         /*End of Delete Section */
 
         /*Start of Filling in form logic*/
@@ -947,12 +1241,32 @@ var addNewItemHelper = {
         /*End of Auto filling in form logic */
 
         parent.append(addNewItemDiv); //Add generated tab to parent
+        if (index>=0){ //Punch in all the correct value according to index
+            var item = mainWindow.recordList[index];
 
-
-        mainWindow.addNewItemWindow = addNewItemDiv;
-
-        setTimeout(function () { //Move window to the top
-            mainWindow.addNewItemWindow.css('top', '0%');
+            addNewItemDiv.find('#'+addNewItemHelper.urlInputId).val(item.url);
+            addNewItemDiv.find('#'+addNewItemHelper.nameInputId).val(item.name);
+            addNewItemDiv.find('#'+addNewItemHelper.usernameInputId).val(item.username);
+            addNewItemDiv.find('#'+addNewItemHelper.passwordInputId).val(item.password);
+            addNewItemDiv.find('#'+addNewItemHelper.noteInputId).val(item.note);
+            addNewItemDiv.find('#'+addNewItemHelper.favIconId).val(item.favicon);
+        }
+    
+        //Cache the created window
+        if (type === addNewItemHelper.view)
+            mainWindow.addNewItemView = addNewItemDiv;
+        else if (type === addNewItemHelper.edit)
+            mainWindow.addNewItemEdit = addNewItemDiv;
+        else
+            mainWindow.addNewItemWindow = addNewItemDiv; 
+    
+        setTimeout(function(){ //Move window to the top
+            if (type === addNewItemHelper.view)
+                mainWindow.addNewItemView.css('top','0%');
+            else if (type === addNewItemHelper.edit)
+                mainWindow.addNewItemEdit.css('top','0%');
+            else
+                mainWindow.addNewItemWindow.css('top','0%');
         }, 100);
     },
 
@@ -1097,7 +1411,74 @@ var addNewItemHelper = {
         return returnResult;
     },
 
-    generatePasswordGenerator(inputField) {
+    generateContentSectionCopyContent(targetValue, fontAwesomeIconClass, titleToolhint){
+        var returnResult = $('<span></span>');
+        returnResult.addClass('fa');
+        returnResult.addClass(fontAwesomeIconClass);
+
+        returnResult.css('float','right');
+        returnResult.css('font-size','18px');
+        returnResult.css('cursor','pointer');
+        returnResult.css('margin-left','5px');
+
+        returnResult.attr('title',titleToolhint);
+
+        returnResult.click(function(){
+            mainWindow.hiddenInputField = $(document.body).find('#hiddenInput');
+            var targetInput = mainWindow.hiddenInputField;
+
+            targetInput.val(targetValue);
+
+            targetInput.select();
+            document.execCommand("copy");
+            targetInput.val();
+            mainWindow.pushNotification('Copied to Clipboard');
+        });
+
+        returnResult.hover(
+            function(){
+                returnResult.css('color',mainWindow.colorBlackWhiten);
+            },
+            function(){
+                returnResult.css('color','black');
+            }
+        )
+
+        return returnResult;
+    },
+
+    generateContentSectionEditContent(currentItem, index){
+        var returnResult = $('<span></span>');
+
+        returnResult.addClass('fa');
+        returnResult.addClass('fa-edit');
+
+        returnResult.css('float','right');
+        returnResult.css('font-size','18px');
+        returnResult.css('cursor','pointer');
+        returnResult.css('margin-left','5px');
+
+        returnResult.attr('title','View Content');
+
+        returnResult.click(function(){
+            addNewItemHelper.addNewItem($(".popup-body"), addNewItemHelper.view, index);
+        });
+
+        returnResult.hover(
+            function(){
+                returnResult.css('color',mainWindow.colorBlackWhiten);
+            },
+            function(){
+                returnResult.css('color','black');
+            }
+        )
+
+        return returnResult;
+    },
+
+
+    generatePasswordGenerator(inputField){
+      
         var returnResult = $('<div></div>');
         returnResult.css('background-color', 'white');
         returnResult.css('padding', '10px 10px');
@@ -1141,4 +1522,56 @@ var addNewItemHelper = {
         return returnResult;
     },
 
+
+    //Specific Implementation
+    generateDeleteSection(index){
+        var returnResult = $('<div></div>');
+        returnResult.css('background-color','white');
+        returnResult.css('padding','10px 10px');
+        returnResult.css('cursor','pointer');
+        returnResult.hover(function(){
+            returnResult.css('background-color',mainWindow.colorWhiteDarken);
+        },
+        function(){
+            returnResult.css('background-color','white');
+        });
+        returnResult.click(function(){
+            mainWindow.deleteDataByIndex(index);
+
+            mainWindow.addNewItemEdit.css('top','100%');
+            mainWindow.addNewItemView.css('top','100%');
+
+            mainWindow.pushNotification('Reocrd Deleted');
+
+            setTimeout(function(){
+                    mainWindow.addNewItemView.remove();
+                    mainWindow.addNewItemView = null;
+
+                    mainWindow.addNewItemEdit.remove();
+                    mainWindow.addNewItemEdit = null;
+            }, 500);
+            
+        });
+
+        var div = $("<div></div>");
+
+
+        var labelName = "Delete Item";
+        var label = $('<label>' + labelName + '</label>');
+        label.css('color','red');
+        label.css('cursor','pointer');
+        label.css('font-size','13px');
+        label.css('display','inline');
+        label.css('margin-left','5px');
+
+        var deleteIcon = $('<i></i>');
+        deleteIcon.addClass('fa');
+        deleteIcon.addClass('fa-trash');
+        deleteIcon.css('color','red');
+
+        div.append(deleteIcon);
+        div.append(label);
+        returnResult.append(div);
+        return returnResult;
+    }
 }
