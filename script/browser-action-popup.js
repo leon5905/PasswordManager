@@ -1,4 +1,27 @@
 $(document).ready(function () {
+    // console.log(mainWindow.masterKey);
+    mainWindow.documentReady = true;
+    if (mainWindow.documentReady && mainWindow.localStorageReady && mainWindow.syncStorageReady)
+        allReady();
+});
+
+// browser.storage.local.clear(); //PurgePurge Storage
+// browser.storage.local.clear();
+
+function allReady() {
+    if (mainWindow.masterKeyLoaded) {
+        if (mainWindow.masterKey == '') {
+            //Initialize master key setup if first time.
+            MasterKeySetup.setup(function (newKey) {
+                // console.log('newKey : ' + newKey);
+                mainWindow.masterKey = newKey;
+                mainWindow.saveMasterKey(newKey);
+                mainWindow.saveDataAll();
+            }, 'true');
+        }
+    }
+
+
     //Assign function to Plus
     $(".popup-new-item-a").mouseenter(function () {
         $(".popup-new-item").css("background-color", "grey");
@@ -15,7 +38,8 @@ $(document).ready(function () {
 
     //Assign function to popup
     $("#popup-btn-seperate").click(function () {
-        var win = window.open('/webpage/browser-action-popup.html');
+        var win = window.open('/webpage/browser-action-popup.html?external=true');
+
         if (win) {
             //Browser has allowed it to be opened
             win.focus(); //Focus on the new web page
@@ -58,7 +82,6 @@ $(document).ready(function () {
         topBar2.css('display', 'table');
         var content2 = $('#popup-setting-content');
         content2.css('display', 'block');
-
     });
 
     //Load Settings/Tools
@@ -167,15 +190,27 @@ $(document).ready(function () {
 
         // console.log(JSON.stringify(result)); //JSON
         // mainWindow.recordList = result;
+        $('#AddNewItemID').css('background-color', 'gainsboro');
     });
     changeMasterKey.click(function () {
-
+        MasterKeySetup.setup(function (newKey) {
+            // console.log('newKey : ' + newKey);
+            mainWindow.masterKey = newKey;
+            mainWindow.saveMasterKey(newKey);
+            mainWindow.saveDataAll();
+            mainWindow.pushNotification('Master Key Changed');
+        }, false, mainWindow.masterKey);
     });
 
     $('#popup-setting-content').append(toolSection);
 
+    mainWindow.searchEmptyDiv = $('#popup-nocontent-search');
+    mainWindow.searchInput = $('#popup-search-input');
+    mainWindow.searchInput.on('input', function () {
+        mainPageHelper.searchFunction(mainWindow.searchInput.val());
+    });
+}
 
-});
 
 //Collection of global var
 var mainWindow = {
@@ -232,15 +267,17 @@ var mainWindow = {
                 onClosed: null,
                 icon_type: 'class',
                 template: '<div data-notify="container" class="col-xs-11 col-sm-3 alert alert-{0}" role="alert" style="width:50%;">' +
-                '<button type="button" aria-hidden="true" class="close" data-notify="dismiss">x</button>' +
-                '<span data-notify="icon"></span> ' +
-                '<span data-notify="title">{1}</span> ' +
-                '<span data-notify="message">{2}</span>' +
-                '<div class="progress" data-notify="progressbar">' +
-                '<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
-                '</div>' +
-                '<a href="{3}" target="{4}" data-notify="url"></a>' +
-                '</div>'
+
+                    '<button type="button" aria-hidden="true" class="close" data-notify="dismiss">x</button>' +
+                    '<span data-notify="icon"></span> ' +
+                    '<span data-notify="title">{1}</span> ' +
+                    '<span data-notify="message">{2}</span>' +
+                    '<div class="progress" data-notify="progressbar">' +
+                    '<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>' +
+                    '</div>' +
+                    '<a href="{3}" target="{4}" data-notify="url"></a>' +
+                    '</div>'
+
             });
     },
 
@@ -286,49 +323,11 @@ var mainWindow = {
         return hostname;
     },
 
-    saveData: function (url, name, username, password, note, favicon) {
-        mainWindow.saveDataWithIndex(url, name, username, password, note, favicon, this.recordList.length);
-    },
 
-    saveDataWithIndex: function (url, name, username, password, note, favicon, index) {
-        if (!favicon) {
-            favicon = mainWindow.deafultFavIconURL;
-        }
+    saveMasterKey: function (masterKey) {
+        browser.storage.local.set({
+            masterKey: mainWindow.masterKey
 
-        var obj = { url, name, username, password, note, favicon }
-        this.recordList[index] = obj;
-
-        mainWindow.recordList.sort(function (a, b) { //Sort it
-            var textA = a.name.toUpperCase();
-            var textB = b.name.toUpperCase();
-
-            var textC = a.username.toUpperCase();
-            var textD = b.username.toUpperCase();
-            if (textA < textB) return -1;
-            else if (textA > textB) return 1;
-            else if (textC < textD) return -1;
-            else if (textC > textD) return 1;
-            else return 0;
-        });
-
-        browser.storage.sync.set({
-            recordList: mainWindow.encryptList(mainWindow.recordList)
-        });
-
-        mainWindow.manualSyncUpdate();
-    },
-
-    saveDataAll() {
-        browser.storage.sync.set({
-            recordList: mainWindow.encryptList(mainWindow.recordList)
-        });
-    },
-
-    deleteDataByIndex: function (index) {
-        mainWindow.recordList.splice(index, 1);
-
-        browser.storage.sync.set({
-            recordList: mainWindow.encryptList(mainWindow.recordList)
         });
 
         mainWindow.manualSyncUpdate();
@@ -355,6 +354,90 @@ var mainWindow = {
         return decryptedData;
     },
 
+    saveData: function (url, name, username, password, note, favicon) {
+        mainWindow.saveDataWithIndex(url, name, username, password, note, favicon, this.recordList.length);
+    },
+
+    saveDataWithIndex: function (url, name, username, password, note, favicon, index) {
+        if (!favicon) {
+            favicon = mainWindow.deafultFavIconURL;
+        }
+
+        var obj = { url, name, username, password, note, favicon }
+        this.recordList[index] = obj;
+
+        mainWindow.recordList.sort(function (a, b) { //Sort it
+            var textA = a.name.toUpperCase();
+            var textB = b.name.toUpperCase();
+
+            var textC = a.username.toUpperCase();
+            var textD = b.username.toUpperCase();
+            if (textA < textB) return -1;
+            else if (textA > textB) return 1;
+            else if (textC < textD) return -1;
+            else if (textC > textD) return 1;
+            else return 0;
+        });
+
+        browser.storage.local.set({
+            recordList: mainWindow.encryptList(mainWindow.recordList)
+        });
+
+        mainWindow.manualSyncUpdate();
+    },
+
+    saveDataAll() {
+        browser.storage.local.set({
+            recordList: mainWindow.encryptList(mainWindow.recordList)
+        });
+    },
+
+    deleteDataByIndex: function (index) {
+        mainWindow.recordList.splice(index, 1);
+
+        browser.storage.local.set({
+            recordList: mainWindow.encryptList(mainWindow.recordList)
+        });
+
+        mainWindow.manualSyncUpdate();
+    },
+
+    encryptList(recordList) {
+        // var encryptList = CryptoJS.AES.encrypt(JSON.stringify(recordList),this.masterKey).toString();
+        console.log('Encrypt List ' + this.masterKey);
+        var ciphertext = CryptoJS.AES.encrypt(JSON.stringify(recordList), this.masterKey);
+
+        return ciphertext.toString();
+    },
+
+    decrpytList(encrpytList) {
+        console.log('Decrypting List ' + encrpytList);
+        if (!encrpytList) return encrpytList;
+
+        var decryptedData;
+
+        // Decrypt
+        try {
+            var bytes = CryptoJS.AES.decrypt(encrpytList, this.masterKey);
+            decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        }
+        catch (e) {
+            console.log(e);
+            try{
+                mainWindow.pushNotification('Master Key tempered...Record List resetted...');
+            }
+            catch(e2){
+                console.log(e2);
+            }
+            decryptedData = [];
+        }
+
+        // console.log('Decrpyted List' + decryptedData);
+
+        return decryptedData;
+    },
+
+
     manualSyncUpdate() { //Sometime the onchange listner is broken
         // mainWindow.recordList.sort(function(a,b){
         //     var textA = a.name.toUpperCase();
@@ -375,14 +458,33 @@ var mainWindow = {
     },
 
     storageChangedListener: function (changes, area) {
-        // console.log('storage changed');
+
+        console.log('storage changed');
+        console.log(area);
         var changedItems = Object.keys(changes);
 
-        for (var item of changedItems) {
-            mainWindow.recordList = mainWindow.decrpytList(changes[item].newValue);
+        if (area == 'sync') {
+            for (var item of changedItems) {
+                console.log('recordList  ' + changes[item].newValue);
+                mainWindow.recordList = mainWindow.decrpytList(changes[item].newValue);
+            }
+
+            mainPageHelper.loadMainPage(mainWindow.recordList);
+        }
+        else if (area == 'local') {
+            for (var item of changedItems) {
+                console.log(item);
+
+                if (item =='masterKey')
+                    mainWindow.masterKey = changes['item'].newValue;
+                else if (item =='recordList'){
+                    mainWindow.recordList = mainWindow.decrpytList(changes['recordList'].newValue);
+                    mainPageHelper.loadMainPage(mainWindow.recordList);
+                }
+            }
+
         }
 
-        mainPageHelper.loadMainPage(mainWindow.recordList);
     },
 
     addNewItemWindow: null,
@@ -402,47 +504,34 @@ var mainWindow = {
     fontSizeWindowTitle: '16px',
 
     //Master Key
-    masterKey: "masterkey",
+
+    masterKey: '',
+    masterKeyLoaded: false,
+
+    //Document Ready
+    documentReady: false,
+    localStorageReady: false,
+    syncStorageReady: false,
+
 
     //All of the record
     recordList: [],
 
     deafultFavIconURL: '/icons/favicon-32x32.png',
     currentPageFavIconURL: null,
-    currentPageURL: null,
+
+    currentPageURL: '',
+
     currentPageTitle: null,
 
     serachInput: null,
     searchEmptyDiv: null,
     hiddenInputField: null,
 
+
+    externalBool: false,
+
     preintialize: function () { //Load before dom is ready
-        //Load storage area
-        var ywzPMStorage = browser.storage.sync.get(
-            {
-                recordList: mainWindow.encryptList([])
-            }
-        );
-        ywzPMStorage.then(function (item) {
-            // console.log('Loading Storage from sync');
-            // console.log(item.recordList);
-            if (item) {
-                mainWindow.recordList = mainWindow.decrpytList(item.recordList);
-            }
-
-            mainWindow.manualSyncUpdate();
-            // mainPageHelper.loadMainPage(mainWindow.recordList);
-            browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
-        },
-            function (error) {
-                console.log(error)
-
-                mainWindow.manualSyncUpdate();
-                // mainPageHelper.loadMainPage(mainWindow.recordList);
-                browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
-            });
-
-
         //Load URL, Title and Favicon
         mainWindow.getTabsInfo(function (windowInfo) {
             tabInfo = windowInfo.tabs;
@@ -454,6 +543,60 @@ var mainWindow = {
                 break;
             }
         })
+
+        var external = $.QueryString.external;
+        if (external) {
+            mainWindow.externalBool = true; //Test for external - Fix bug concerning import csv from dropdown
+        }
+
+        //Load storage area
+        var keyLocalStorage = browser.storage.local.get(
+            {
+                masterKey: '',
+            }
+        );
+        keyLocalStorage.then(function (item) {
+            console.log('getto key');
+            // console.log(item.masterKey);
+            mainWindow.masterKey = item.masterKey;
+            mainWindow.masterKeyLoaded = true;
+
+            mainWindow.localStorageReady = true;
+            if (mainWindow.documentReady && mainWindow.syncStorageReady && mainWindow.localStorageReady) { //Help setup as well
+                allReady();
+            }
+        });
+
+        var ywzPMStorage = browser.storage.local.get(
+            {
+                recordList: mainWindow.encryptList([]),
+            }
+        );
+        ywzPMStorage.then(function (item) {
+            console.log('Loading Storage from local2');
+            // console.log(item.recordList);
+            if (item) {
+                mainWindow.recordList = mainWindow.decrpytList(item.recordList);
+            }
+
+            mainWindow.manualSyncUpdate();
+            // mainPageHelper.loadMainPage(mainWindow.recordList);
+            browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
+
+            mainWindow.syncStorageReady = true;
+            if (mainWindow.documentReady && mainWindow.syncStorageReady && mainWindow.localStorageReady) { //Help setup as well
+                allReady();
+            }
+
+        },
+            function (error) {
+                console.log(error)
+
+                mainWindow.manualSyncUpdate();
+                // mainPageHelper.loadMainPage(mainWindow.recordList);
+                browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
+            });
+
     }
 };
 
@@ -472,18 +615,22 @@ mainWindow.preintialize();
 //Main Page Section
 var mainPageHelper = {
     contentHead: null,
-    mainPageContent:null,
 
-    loadMainPage:function(recordList){ //Load the main page by ini / reinitialize the main page content
+    mainPageContent: null,
+
+    loadMainPage: function (recordList) { //Load the main page by ini / reinitialize the main page content
         mainPageHelper.contentHead = $('#popup-home-content'); //Load the reference
-        if (!( typeof mainPageContent === "undefined") && mainPageContent!=null) {
+        if (!(typeof mainPageContent === "undefined") && mainPageContent != null) {
+
             mainPageContent.remove(); //Remove previous content
         }
 
         //Seperate List
         currentListIndex = [];
         otherListIndex = [];
-        for (var i=0;i<recordList.length;i++){
+
+        for (var i = 0; i < recordList.length; i++) {
+
             //Comparing current url and stored url...
             var storedURL = recordList[i].url;
             storedURL = mainWindow.extractRootDomain(storedURL);
@@ -491,16 +638,22 @@ var mainPageHelper = {
 
             var currentURL = mainWindow.currentPageURL;
             currentURL = mainWindow.extractRootDomain(currentURL);
-            var currentURLRegExp = new RegExp(currentURL,'i');
+
+            var currentURLRegExp = new RegExp(currentURL, 'i');
+
 
             // var bool1 = currentURLRegExp.test(storedURL);
             var bool2 = currentURLRegExp.test(storedURL);
 
-            if (bool2){ //If true
-                
+            if (currentURL == ''){
+                bool2 =false; //Dont acknowledge empty url
+            }
+
+            if (bool2) { //If true
                 currentListIndex[currentListIndex.length] = i;
             }
-            else{
+            else {
+
                 otherListIndex[otherListIndex.length] = i;
             }
         }
@@ -519,21 +672,23 @@ var mainPageHelper = {
         mainPageContent = mainDiv;
 
         //Current Tab Section
-        var currentTabSection=$('<div></div');
+
+        var currentTabSection = $('<div></div');
         currentTabSection.addClass('popup-list-section');
         currentTabSection.append(addNewItemHelper.generateContentSectionHeader("Suggested Login"));
-        var currentTabList=$('<div></div>');
-        currentTabList.css('border-top','2px solid lightgrey');
-        currentTabList.css('border-bottom','2px solid lightgrey');
+        var currentTabList = $('<div></div>');
+        currentTabList.css('border-top', '2px solid lightgrey');
+        currentTabList.css('border-bottom', '2px solid lightgrey');
 
-        if (currentListIndex.length==0){ //Append No record
+        if (currentListIndex.length == 0) { //Append No record
             //TODO
             currentTabList.append(mainPageHelper.generateMainPageViewNoItem());
         }
-        else{
-            for (var i=0;i<currentListIndex.length;i++){ //Append correponsding item
+        else {
+            for (var i = 0; i < currentListIndex.length; i++) { //Append correponsding item
                 var currentItem = (mainWindow.recordList[currentListIndex[i]]);
-                currentTabList.append(mainPageHelper.generateMainPageView(currentItem,currentListIndex[i]));
+                currentTabList.append(mainPageHelper.generateMainPageView(currentItem, currentListIndex[i]));
+
             }
         }
 
@@ -541,22 +696,24 @@ var mainPageHelper = {
         //End of Currentab Section
 
         //Current Tab Section
-        var otherTabSection=$('<div></div');
+
+        var otherTabSection = $('<div></div');
         otherTabSection.addClass('popup-list-section');
         otherTabSection.append(addNewItemHelper.generateContentSectionHeader("Others"));
-        var otherTabList=$('<div></div>');
-        otherTabList.css('border-top','2px solid lightgrey');
-        otherTabList.css('border-bottom','2px solid lightgrey');
+        var otherTabList = $('<div></div>');
+        otherTabList.css('border-top', '2px solid lightgrey');
+        otherTabList.css('border-bottom', '2px solid lightgrey');
         otherTabSection.append(otherTabList);//End of Currentab Section
 
-        if (otherListIndex.length==0){ //Append no record
+        if (otherListIndex.length == 0) { //Append no record
             //TODO
             otherTabList.append(mainPageHelper.generateMainPageViewNoItem());
         }
-        else{
-            for (var i=0;i<otherListIndex.length;i++){ //Append correponsding item
+        else {
+            for (var i = 0; i < otherListIndex.length; i++) { //Append correponsding item
                 var currentItem = (mainWindow.recordList[otherListIndex[i]]);
-                otherTabList.append(mainPageHelper.generateMainPageView(currentItem,otherListIndex[i]));
+                otherTabList.append(mainPageHelper.generateMainPageView(currentItem, otherListIndex[i]));
+
 
             }
         }
@@ -568,79 +725,89 @@ var mainPageHelper = {
         mainPageHelper.contentHead.append(mainDiv); //Append the final form to the main view
 
         //Synchonise and reset most stuff
-        mainWindow.searchEmptyDiv.css('display','none'); //Hide no search result
-        mainPageHelper.searchFunction(mainWindow.searchInput.val());
+
+        if (mainWindow.searchEmptyDiv) {
+            mainWindow.searchEmptyDiv.css('display', 'none'); //Hide no search result
+        }
+        if (mainWindow.searchInput)
+            mainPageHelper.searchFunction(mainWindow.searchInput.val());
+        else
+            mainPageHelper.searchFunction('');
     },
 
-    searchFunction: function(parameter){ // Will search for match in Name
+    searchFunction: function (parameter) { // Will search for match in Name
         //Go through list, disable and enable visibility
         var searchDiv = $('body').children('.popup-div').find('.popup-list-section');
         var allNoResult = true;
-        searchDiv.each(function(){
+        searchDiv.each(function () {
             var allRecordDiv = $(this).find('.popup-record-div');
             var noResult = true;
-            
-            var paraReg =  new RegExp(parameter,'i');
-            allRecordDiv.each(function(){
+
+            var paraReg = new RegExp(parameter, 'i');
+            allRecordDiv.each(function () {
                 var instance = $(this);
-                if (instance.attr('id')<0){
-                    if (parameter==='' || !parameter){
-                        instance.css('display','block');
-                        noResult=false;
-                        allNoResult=false;
+                if (instance.attr('id') < 0) {
+                    if (parameter === '' || !parameter) {
+                        instance.css('display', 'block');
+                        noResult = false;
+                        allNoResult = false;
                     }
-                    else{
-                        instance.css('display','none');
+                    else {
+                        instance.css('display', 'none');
+
                     }
 
                     return;
                 }
-        
-                if (paraReg.test(mainWindow.recordList[instance.attr('id')].username) || paraReg.test(mainWindow.recordList[instance.attr('id')].name)){
-                    instance.css('display','flex');
+
+
+                if (paraReg.test(mainWindow.recordList[instance.attr('id')].username) || paraReg.test(mainWindow.recordList[instance.attr('id')].name)) {
+                    instance.css('display', 'flex');
                     // console.log(paraReg.test(mainWindow.recordList[instance.attr('id')].name));
-                    noResult=false;
-                    allNoResult=false;
+                    noResult = false;
+                    allNoResult = false;
                 }
-                else{
+                else {
                     // instance.css('visibility','hidden');
-                    instance.css('display','none');
+                    instance.css('display', 'none');
                 }
             });
 
-            if (noResult){
-                var thisDiv =  $(this);
-                thisDiv.css('display','none');
+            if (noResult) {
+                var thisDiv = $(this);
+                thisDiv.css('display', 'none');
             }
-            else{
-                var thisDiv =  $(this);
-                thisDiv.css('display','block');
+            else {
+                var thisDiv = $(this);
+                thisDiv.css('display', 'block');
             }
         });
 
-        if (allNoResult){
-            //Display Special Div ?? - remind no result by searching
-            mainWindow.searchEmptyDiv.css('display','flex');
-        }else{
+        if (allNoResult) {
+            if (mainWindow.searchEmptyDiv)
+                //Display Special Div ?? - remind no result by searching
+                mainWindow.searchEmptyDiv.css('display', 'flex');
+        } else {
             //Hide Special Div
-            mainWindow.searchEmptyDiv.css('display','none');
+            if (mainWindow.searchEmptyDiv)
+                mainWindow.searchEmptyDiv.css('display', 'none');
         }
 
         // if (!parameter || !parameter.trim() || this.length === 0){} //Search bar is empty - Restore relevant div visibility
     },
 
-    generateMainPageView: function(currentItem,index){
+    generateMainPageView: function (currentItem, index) {
         var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
-        div.attr('id',index);
+        div.attr('id', index);
         div.addClass('popup-record-div');
 
         var header = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.name);
-        header.find('label').css('color','black');
-        header.css('cursor','pointer');
-        header.attr('title','Auto-fill');
-        header.click(function(){
-            var executableCode = 
-            `
+        header.find('label').css('color', 'black');
+        header.css('cursor', 'pointer');
+        header.attr('title', 'Auto-fill');
+        header.click(function () {
+            var executableCode =
+                `
             var inputList = document.getElementsByTagName("input");
             var regExpEmail = new RegExp('email', "i");
             var regExpUsername = new RegExp('username', "i");
@@ -649,10 +816,10 @@ var mainPageHelper = {
                 var inputField = inputList[i];
                 var inputFieldName = inputField.name.toLowerCase();
                 if (inputField.type === 'password' ||  inputField.type === 'Password' || inputField.type === 'PASSWORD'){
-                    inputField.value = '`+currentItem.password+`'
+                    inputField.value = '`+ currentItem.password + `'
                 }
                 else if (inputFieldName === 'username' || inputFieldName === 'loginname'|| inputFieldName=== 'login' || inputFieldName === 'email' || inputFieldName === 'user' || inputFieldName === 'identifier' || regExpEmail.test(inputFieldName) || regExpUsername.test(inputFieldName)){
-                        inputField.value = '`+currentItem.username+`';
+                        inputField.value = '`+ currentItem.username + `';
                 }
             }
             `
@@ -662,20 +829,61 @@ var mainPageHelper = {
             var executing = browser.tabs.executeScript({
                 code: executableCode
             });
-            executing.then(function(){
-            }, 
-            function(error){
-                // alert('Execute Script on Active Tab fail with : ' + error);
-            });
+            executing.then(function () {
+            },
+                function (error) {
+                    // alert('Execute Script on Active Tab fail with : ' + error);
+                });
         });
 
         var labelUserName = addNewItemHelper.generateContentSectionSpecialHeader(currentItem.username);
         header.append(labelUserName);
         header.find('label').each(function () {
-            $(this).css('cursor','pointer');
-            $(this).click(function(e){
-               
+            $(this).css('cursor', 'pointer');
+            $(this).click(function (e) {
+
             });
+        });
+
+        div.append(header);
+
+        //Logo Section
+        var logoDiv = $('<div></div>');
+        logoDiv.css('cursor', 'pointer');
+        logoDiv.attr('title', 'Launch Website');
+        logoDiv.click(function () { //Open Website
+            var win = window.open(currentItem.url, '_blank');
+            win.focus();
+        });
+        logoDiv.css('padding', '0px 10px 0px 0px');
+        var img = $('<img></img>');
+        img.attr('src', currentItem.favicon);
+        img.attr('width', '24');
+        img.attr('height', '24');
+        // img.css('border-radius','50%');
+        logoDiv.append(img);
+        div.prepend(logoDiv);
+
+        //Action Section
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.username, 'fa-user', 'Copy Username'));
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.password, 'fa-key', 'Copy Password'));
+        div.append(addNewItemHelper.generateContentSectionEditContent(currentItem, index));
+
+        return div;
+    },
+
+    generateMainPageViewNoItem: function () {
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id', '-1');
+        div.addClass('popup-record-div');
+
+        var noitemLabel = $('<label>There is no item on the list.</label>');
+        div.append(noitemLabel);
+
+
+        return div;
+    },
+
 
     //Generate Tool Entry
     generateToolPageEntry: function (icon, title, message, color) {
@@ -706,6 +914,7 @@ var mainPageHelper = {
 
         //Logo Section
         var logoDiv = $('<div></div>');
+
         logoDiv.css('cursor','pointer');
         logoDiv.attr('title','Launch Website');
         logoDiv.click(function(){ //Open Website
@@ -737,6 +946,7 @@ var mainPageHelper = {
         var noitemLabel = $('<label>There is no item on the list.</label>');
         div.append(noitemLabel);
 
+
         var logo = $('<div></div>');
         logo.addClass('fa');
         logo.addClass(icon);
@@ -750,7 +960,7 @@ var mainPageHelper = {
         // img.css('border-radius','50%');
         logoDiv.append(logo);
         div.prepend(logoDiv);
-      
+
         return div;
     },
 
@@ -840,7 +1050,7 @@ var mainPageHelper = {
 
         return addNewItemHeader;
     }
-}
+};
 
 //Add New Item Section
 var addNewItemHelper = {
@@ -1007,8 +1217,8 @@ var addNewItemHelper = {
                     faviconSource = mainWindow.deafultFavIconURL;
                 }
 
-                mainWindow.saveDataWithIndex(targetDiv.find('#' + addNewItemHelper.urlInputId).val(), targetDiv.find('#' + addNewItemHelper.nameInputId).val(), targetDiv.find('#' + addNewItemHelper.usernameInputId).val(),
-                    targetDiv.find('#' + addNewItemHelper.passwordInputId).val(), targetDiv.find('#' + addNewItemHelper.noteInputId).val(), faviconSource, index);
+                mainWindow.saveData(targetDiv.find('#' + addNewItemHelper.urlInputId).val(), targetDiv.find('#' + addNewItemHelper.nameInputId).val(), targetDiv.find('#' + addNewItemHelper.usernameInputId).val(),
+                    targetDiv.find('#' + addNewItemHelper.passwordInputId).val(), targetDiv.find('#' + addNewItemHelper.noteInputId).val(), faviconSource);
 
                 mainWindow.pushNotification('New Record Saved');
             }
@@ -1022,7 +1232,7 @@ var addNewItemHelper = {
                 mainWindow.saveDataWithIndex(targetDiv.find('#' + addNewItemHelper.urlInputId).val(), targetDiv.find('#' + addNewItemHelper.nameInputId).val(), targetDiv.find('#' + addNewItemHelper.usernameInputId).val(),
                     targetDiv.find('#' + addNewItemHelper.passwordInputId).val(), targetDiv.find('#' + addNewItemHelper.noteInputId).val(), faviconSource, index);
 
-                mainWindow.pushNotification('Record Edited');  
+                mainWindow.pushNotification('Record Edited');
             }
             else if (type == addNewItemHelper.view) {
                 addNewItemHelper.addNewItem($(".popup-body"), addNewItemHelper.edit, index);
@@ -1094,6 +1304,9 @@ var addNewItemHelper = {
         addNewItemContent.css('height', "calc(100% - 45px)");
         addNewItemContent.css('top', "45px");
         addNewItemContent.css('overflow', "auto");
+
+        addNewItemContent.css('background', "gainsboro");
+
         addNewItemContent.attr('id', this.divId);
         addNewItemDiv.append(addNewItemContent);
 
@@ -1147,33 +1360,37 @@ var addNewItemHelper = {
             var favIconHeader = this.generateContentSectionStandardHeader("Display Icon URL");
 
             var favIconDiv2 = $('<div></div>');
-            favIconDiv2.css("display","flex");
-            var favIconDisplay =  $('<img></img>');
-            favIconDisplay.css("width","24px");
-            favIconDisplay.css("height","24px");
 
-            var favIconURLInput = this.generateContentSectionInputField(addNewItemHelper.favIconId,'text',inputBool);
-            favIconURLInput.on('input',function(){
+            favIconDiv2.css("display", "flex");
+            var favIconDisplay = $('<img></img>');
+            favIconDisplay.css("width", "24px");
+            favIconDisplay.css("height", "24px");
+
+            var favIconURLInput = this.generateContentSectionInputField(addNewItemHelper.favIconId, 'text', inputBool);
+            favIconURLInput.on('input', function () {
                 var url = $(this).val();
-                favIconDisplay.attr('src',url);
+                favIconDisplay.attr('src', url);
 
-                if (url=== ''){
-                    favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+                if (url === '') {
+                    favIconDisplay.attr('src', "/icons/favicon-32x32.png");
                 }
             });
 
-            if (type===addNewItemHelper.edit){
+            if (type === addNewItemHelper.edit) {
+
                 var item = mainWindow.recordList[index];
 
                 favIconURLInput.val(item.favicon);
             }
-            else{
+
+            else {
                 favIconURLInput.val(mainWindow.currentPageFavIconURL);
             }
 
-            favIconDisplay.attr('src',favIconURLInput.val());
-            if (favIconURLInput.val()=== ''){
-                favIconDisplay.attr('src',"/icons/favicon-32x32.png");
+            favIconDisplay.attr('src', favIconURLInput.val());
+            if (favIconURLInput.val() === '') {
+                favIconDisplay.attr('src', "/icons/favicon-32x32.png");
+
             }
 
             favIconDiv2.append(favIconDisplay);
@@ -1209,20 +1426,22 @@ var addNewItemHelper = {
 
         /*Delete Section*/
         var addNewItemDeleteSection;
-        if (type===addNewItemHelper.edit){
+
+        if (type === addNewItemHelper.edit) {
             //Delete Functionality
-            addNewItemDeleteSection=$('<div></div');//Section Note
+            addNewItemDeleteSection = $('<div></div');//Section Note
             addNewItemDeleteSection.addClass('popup-list-section');
             addNewItemDeleteSection.append(this.generateContentSectionHeader("Delete"));
 
-            var addNewItemDeleteList=$('<div></div>');
-            addNewItemDeleteList.css('border-top','2px solid lightgrey');
+            var addNewItemDeleteList = $('<div></div>');
+            addNewItemDeleteList.css('border-top', '2px solid lightgrey');
+
 
             var addNewDeleteFunction = this.generateDeleteSection(index); //Delete 
             addNewItemDeleteList.append(addNewDeleteFunction);
 
             addNewItemDeleteSection.append(addNewItemDeleteList);
-    
+
         }
         /*End of Delete Section */
 
@@ -1241,32 +1460,36 @@ var addNewItemHelper = {
         /*End of Auto filling in form logic */
 
         parent.append(addNewItemDiv); //Add generated tab to parent
-        if (index>=0){ //Punch in all the correct value according to index
+
+        if (index >= 0) { //Punch in all the correct value according to index
             var item = mainWindow.recordList[index];
 
-            addNewItemDiv.find('#'+addNewItemHelper.urlInputId).val(item.url);
-            addNewItemDiv.find('#'+addNewItemHelper.nameInputId).val(item.name);
-            addNewItemDiv.find('#'+addNewItemHelper.usernameInputId).val(item.username);
-            addNewItemDiv.find('#'+addNewItemHelper.passwordInputId).val(item.password);
-            addNewItemDiv.find('#'+addNewItemHelper.noteInputId).val(item.note);
-            addNewItemDiv.find('#'+addNewItemHelper.favIconId).val(item.favicon);
+            addNewItemDiv.find('#' + addNewItemHelper.urlInputId).val(item.url);
+            addNewItemDiv.find('#' + addNewItemHelper.nameInputId).val(item.name);
+            addNewItemDiv.find('#' + addNewItemHelper.usernameInputId).val(item.username);
+            addNewItemDiv.find('#' + addNewItemHelper.passwordInputId).val(item.password);
+            addNewItemDiv.find('#' + addNewItemHelper.noteInputId).val(item.note);
+            addNewItemDiv.find('#' + addNewItemHelper.favIconId).val(item.favicon);
         }
-    
+
+
         //Cache the created window
         if (type === addNewItemHelper.view)
             mainWindow.addNewItemView = addNewItemDiv;
         else if (type === addNewItemHelper.edit)
             mainWindow.addNewItemEdit = addNewItemDiv;
         else
-            mainWindow.addNewItemWindow = addNewItemDiv; 
-    
-        setTimeout(function(){ //Move window to the top
+
+            mainWindow.addNewItemWindow = addNewItemDiv;
+
+        setTimeout(function () { //Move window to the top
             if (type === addNewItemHelper.view)
-                mainWindow.addNewItemView.css('top','0%');
+                mainWindow.addNewItemView.css('top', '0%');
             else if (type === addNewItemHelper.edit)
-                mainWindow.addNewItemEdit.css('top','0%');
+                mainWindow.addNewItemEdit.css('top', '0%');
             else
-                mainWindow.addNewItemWindow.css('top','0%');
+                mainWindow.addNewItemWindow.css('top', '0%');
+
         }, 100);
     },
 
@@ -1402,6 +1625,7 @@ var addNewItemHelper = {
         returnResult.hover(
             function () {
                 returnResult.css('color', mainWindow.colorBlackWhiten);
+
             },
             function () {
                 returnResult.css('color', 'black');
@@ -1411,19 +1635,19 @@ var addNewItemHelper = {
         return returnResult;
     },
 
-    generateContentSectionCopyContent(targetValue, fontAwesomeIconClass, titleToolhint){
+    generateContentSectionCopyContent(targetValue, fontAwesomeIconClass, titleToolhint) {
         var returnResult = $('<span></span>');
         returnResult.addClass('fa');
         returnResult.addClass(fontAwesomeIconClass);
 
-        returnResult.css('float','right');
-        returnResult.css('font-size','18px');
-        returnResult.css('cursor','pointer');
-        returnResult.css('margin-left','5px');
+        returnResult.css('float', 'right');
+        returnResult.css('font-size', '18px');
+        returnResult.css('cursor', 'pointer');
+        returnResult.css('margin-left', '5px');
 
-        returnResult.attr('title',titleToolhint);
+        returnResult.attr('title', titleToolhint);
 
-        returnResult.click(function(){
+        returnResult.click(function () {
             mainWindow.hiddenInputField = $(document.body).find('#hiddenInput');
             var targetInput = mainWindow.hiddenInputField;
 
@@ -1436,49 +1660,48 @@ var addNewItemHelper = {
         });
 
         returnResult.hover(
-            function(){
-                returnResult.css('color',mainWindow.colorBlackWhiten);
+            function () {
+                returnResult.css('color', mainWindow.colorBlackWhiten);
             },
-            function(){
-                returnResult.css('color','black');
+            function () {
+                returnResult.css('color', 'black');
             }
         )
 
         return returnResult;
     },
 
-    generateContentSectionEditContent(currentItem, index){
+    generateContentSectionEditContent(currentItem, index) {
         var returnResult = $('<span></span>');
 
         returnResult.addClass('fa');
         returnResult.addClass('fa-edit');
 
-        returnResult.css('float','right');
-        returnResult.css('font-size','18px');
-        returnResult.css('cursor','pointer');
-        returnResult.css('margin-left','5px');
+        returnResult.css('float', 'right');
+        returnResult.css('font-size', '18px');
+        returnResult.css('cursor', 'pointer');
+        returnResult.css('margin-left', '5px');
 
-        returnResult.attr('title','View Content');
+        returnResult.attr('title', 'View Content');
 
-        returnResult.click(function(){
+        returnResult.click(function () {
             addNewItemHelper.addNewItem($(".popup-body"), addNewItemHelper.view, index);
         });
 
         returnResult.hover(
-            function(){
-                returnResult.css('color',mainWindow.colorBlackWhiten);
+            function () {
+                returnResult.css('color', mainWindow.colorBlackWhiten);
             },
-            function(){
-                returnResult.css('color','black');
+            function () {
+                returnResult.css('color', 'black');
             }
         )
 
         return returnResult;
     },
 
+    generatePasswordGenerator(inputField) {
 
-    generatePasswordGenerator(inputField){
-      
         var returnResult = $('<div></div>');
         returnResult.css('background-color', 'white');
         returnResult.css('padding', '10px 10px');
@@ -1524,33 +1747,34 @@ var addNewItemHelper = {
 
 
     //Specific Implementation
-    generateDeleteSection(index){
+    generateDeleteSection(index) {
         var returnResult = $('<div></div>');
-        returnResult.css('background-color','white');
-        returnResult.css('padding','10px 10px');
-        returnResult.css('cursor','pointer');
-        returnResult.hover(function(){
-            returnResult.css('background-color',mainWindow.colorWhiteDarken);
+        returnResult.css('background-color', 'white');
+        returnResult.css('padding', '10px 10px');
+        returnResult.css('cursor', 'pointer');
+        returnResult.hover(function () {
+            returnResult.css('background-color', mainWindow.colorWhiteDarken);
         },
-        function(){
-            returnResult.css('background-color','white');
-        });
-        returnResult.click(function(){
+            function () {
+                returnResult.css('background-color', 'white');
+            });
+        returnResult.click(function () {
             mainWindow.deleteDataByIndex(index);
 
-            mainWindow.addNewItemEdit.css('top','100%');
-            mainWindow.addNewItemView.css('top','100%');
+            mainWindow.addNewItemEdit.css('top', '100%');
+            mainWindow.addNewItemView.css('top', '100%');
 
             mainWindow.pushNotification('Reocrd Deleted');
 
-            setTimeout(function(){
-                    mainWindow.addNewItemView.remove();
-                    mainWindow.addNewItemView = null;
+            setTimeout(function () {
+                mainWindow.addNewItemView.remove();
+                mainWindow.addNewItemView = null;
 
-                    mainWindow.addNewItemEdit.remove();
-                    mainWindow.addNewItemEdit = null;
+                mainWindow.addNewItemEdit.remove();
+                mainWindow.addNewItemEdit = null;
             }, 500);
-            
+
+
         });
 
         var div = $("<div></div>");
@@ -1558,20 +1782,26 @@ var addNewItemHelper = {
 
         var labelName = "Delete Item";
         var label = $('<label>' + labelName + '</label>');
-        label.css('color','red');
-        label.css('cursor','pointer');
-        label.css('font-size','13px');
-        label.css('display','inline');
-        label.css('margin-left','5px');
+
+        label.css('color', 'red');
+        label.css('cursor', 'pointer');
+        label.css('font-size', '13px');
+        label.css('display', 'inline');
+        label.css('margin-left', '5px');
+
 
         var deleteIcon = $('<i></i>');
         deleteIcon.addClass('fa');
         deleteIcon.addClass('fa-trash');
-        deleteIcon.css('color','red');
+
+        deleteIcon.css('color', 'red');
+
 
         div.append(deleteIcon);
         div.append(label);
         returnResult.append(div);
         return returnResult;
     }
+
+
 }

@@ -1,0 +1,11 @@
+{
+    "exclude": [
+      "node_modules",
+      "**/node_modules/*"
+    ],
+    "typeAcquisition": {
+      "include": [
+          "jquery"
+      ]
+    }
+}

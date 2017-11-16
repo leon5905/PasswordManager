@@ -1,13 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="/style/browser-action-popup.css">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+  <title>Password Manager Application</title>
   <link rel="stylesheet" href="/style/bootstrap.min.css"/>
   <link rel="stylesheet" href="/style/animate.css"/>
+  <link rel="stylesheet" href="/style/jquery-ui.min.css"/>
+  <link rel="stylesheet" href="/style/browser-action-popup.css">
   <script src="/script/jquery-3.2.1.min.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script> -->
+  <script src="/script/popper.min.js"></script>
+  <script src="/script/jquery-ui.min.js"></script>
   <script src="/script/bootstrap.min.js"></script>
   <script src="/script/bootstrap-notify.min.js"></script>
   <script src="/script/crypto-js.js"></script>
+
+  <script src="/script/queryString.js"></script>
+  <script src="/script/masterkey-setup.js"></script>
+  <script src="/script/passwordGenerator.js"></script>
+
   <script src="/script/browser-action-popup.js"></script>
   <link rel="stylesheet" href="/icons/font-awesome-4.7.0/css/font-awesome.min.css">
 </head>
@@ -49,7 +61,45 @@
       </div> 
     </div>
 
+    <!--Master Key Sectio-->
+    <div id="popup-master-key-div" 
+    style="position: absolute; width: 100%; height: 100%; background-color: gainsboro; z-index: -1000; top: 0%; transition: all 0.4s ease-out 0s;opacity: 0;display:flex;overflow:auto;">
+      <div class="popup-master-key-cancel" id='popup-master-cancel-btn' style="float:left;position:absolute;width:40px;height:40px;display:flex;align-items:center;">
+        <div style="position:absolute;width:100%;height:100%;"></div>
+        <i class="fa fa-times" style="font-size:35px;margin:auto;"></i>
+      </div>
+      <div style="margin:auto;width:50%;height:75%">
+        <div style="display:flex">
+          <img style="width:128px;height:128px;margin:auto;" src="/icons/Password+512.png"></img>
+        </div>
+        <div class="popup-master-key-row">
+          <label>Please Enter Your Master Key.</label>
+          <label id="popup-master-key-warning" style="display:none;color:red;">Information is Incorrect.</label>
+        </div>
+        <div id="popup-master-key-current-row" class="popup-master-key-row">
+          <div>Current Master Key</div>
+          <input class="popup-master-key-input" style="width:100%" type="Password"></input>
+        </div>
+        <div id="popup-master-key-new-row" class="popup-master-key-row">
+          <div>New Master Key</div>
+          <input class="popup-master-key-input" style="width:100%"  type="Password"></input>
+        </div>
+        <div id="popup-master-key-confirm-row" class="popup-master-key-row">
+          <div>Confirm Master Key</div>
+          <input class="popup-master-key-input" style="width:100%"  type="Password"></input>
+        </div>
+        <div style="display:flex;">
+          <button id='popup-master-key-btn' class="btn-primary" style="width:37.5%;margin:auto;">Confirm</button>
+        </div>
+        
+      </div>
+    </div>
     
   </div>
 </body>
+
+<div id="dialog-confirm" title="Delete All Record?" style="display:none">
+  <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+</div>
+</html>
 
