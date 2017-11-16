@@ -6,7 +6,7 @@
 
   "description": "Password Manager that store,manage your id and password",
 
-  "icons": {
+  "icons": { //Icons will be done later
     "48": "icons/Password+48.png"
   },
 
@@ -16,7 +16,7 @@
       "48": "icons/Password+48.png",
       "64": "icons/Password+64.png"
     },
-    "default_title": "Password Manager",
+    "default_title": "Password Manager +",
     "default_popup": "webpage/browser-action-popup.html"
   },
 
@@ -26,6 +26,8 @@
       "strict_min_version": "1.0"
     }
   },
+
+  "content_security_policy": "script-src 'self' https://cdnjs.cloudflare.com; object-src 'self'",
 
   "permissions":["contextMenus","activeTab","tabs","storage"] //Request Required Permission in advance 
 }
