@@ -21,6 +21,7 @@ function allReady() {
         }
     }
 
+
     //Assign function to Plus
     $(".popup-new-item-a").mouseenter(function () {
         $(".popup-new-item").css("background-color", "grey");
@@ -38,6 +39,7 @@ function allReady() {
     //Assign function to popup
     $("#popup-btn-seperate").click(function () {
         var win = window.open('/webpage/browser-action-popup.html?external=true');
+
         if (win) {
             //Browser has allowed it to be opened
             win.focus(); //Focus on the new web page
@@ -80,7 +82,6 @@ function allReady() {
         topBar2.css('display', 'table');
         var content2 = $('#popup-setting-content');
         content2.css('display', 'block');
-
     });
 
     //Load Settings/Tools
@@ -210,6 +211,7 @@ function allReady() {
     });
 }
 
+
 //Collection of global var
 var mainWindow = {
     download: function (filename, text) {
@@ -265,6 +267,7 @@ var mainWindow = {
                 onClosed: null,
                 icon_type: 'class',
                 template: '<div data-notify="container" class="col-xs-11 col-sm-3 alert alert-{0}" role="alert" style="width:50%;">' +
+
                     '<button type="button" aria-hidden="true" class="close" data-notify="dismiss">x</button>' +
                     '<span data-notify="icon"></span> ' +
                     '<span data-notify="title">{1}</span> ' +
@@ -274,6 +277,7 @@ var mainWindow = {
                     '</div>' +
                     '<a href="{3}" target="{4}" data-notify="url"></a>' +
                     '</div>'
+
             });
     },
 
@@ -319,10 +323,35 @@ var mainWindow = {
         return hostname;
     },
 
+
     saveMasterKey: function (masterKey) {
         browser.storage.local.set({
             masterKey: mainWindow.masterKey
+
         });
+
+        mainWindow.manualSyncUpdate();
+    },
+
+    encryptList(recordList) {
+        // var encryptList = CryptoJS.AES.encrypt(JSON.stringify(recordList),this.masterKey).toString();
+
+        var ciphertext = CryptoJS.AES.encrypt(JSON.stringify(recordList), this.masterKey);
+
+        return ciphertext.toString();
+    },
+
+    decrpytList(encrpytList) {
+        // console.log('Decrypting List '+ encrpytList);
+        if (!encrpytList) return encrpytList;
+
+        // Decrypt
+        var bytes = CryptoJS.AES.decrypt(encrpytList, this.masterKey);
+        var decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+        // console.log('Decrpyted List' + decryptedData);
+
+        return decryptedData;
     },
 
     saveData: function (url, name, username, password, note, favicon) {
@@ -408,6 +437,7 @@ var mainWindow = {
         return decryptedData;
     },
 
+
     manualSyncUpdate() { //Sometime the onchange listner is broken
         // mainWindow.recordList.sort(function(a,b){
         //     var textA = a.name.toUpperCase();
@@ -428,6 +458,7 @@ var mainWindow = {
     },
 
     storageChangedListener: function (changes, area) {
+
         console.log('storage changed');
         console.log(area);
         var changedItems = Object.keys(changes);
@@ -453,6 +484,7 @@ var mainWindow = {
             }
 
         }
+
     },
 
     addNewItemWindow: null,
@@ -472,6 +504,7 @@ var mainWindow = {
     fontSizeWindowTitle: '16px',
 
     //Master Key
+
     masterKey: '',
     masterKeyLoaded: false,
 
@@ -480,17 +513,21 @@ var mainWindow = {
     localStorageReady: false,
     syncStorageReady: false,
 
+
     //All of the record
     recordList: [],
 
     deafultFavIconURL: '/icons/favicon-32x32.png',
     currentPageFavIconURL: null,
+
     currentPageURL: '',
+
     currentPageTitle: null,
 
     serachInput: null,
     searchEmptyDiv: null,
     hiddenInputField: null,
+
 
     externalBool: false,
 
@@ -550,6 +587,7 @@ var mainWindow = {
             if (mainWindow.documentReady && mainWindow.syncStorageReady && mainWindow.localStorageReady) { //Help setup as well
                 allReady();
             }
+
         },
             function (error) {
                 console.log(error)
@@ -558,6 +596,7 @@ var mainWindow = {
                 // mainPageHelper.loadMainPage(mainWindow.recordList);
                 browser.storage.onChanged.addListener(mainWindow.storageChangedListener);
             });
+
     }
 };
 
@@ -576,18 +615,22 @@ mainWindow.preintialize();
 //Main Page Section
 var mainPageHelper = {
     contentHead: null,
+
     mainPageContent: null,
 
     loadMainPage: function (recordList) { //Load the main page by ini / reinitialize the main page content
         mainPageHelper.contentHead = $('#popup-home-content'); //Load the reference
         if (!(typeof mainPageContent === "undefined") && mainPageContent != null) {
+
             mainPageContent.remove(); //Remove previous content
         }
 
         //Seperate List
         currentListIndex = [];
         otherListIndex = [];
+
         for (var i = 0; i < recordList.length; i++) {
+
             //Comparing current url and stored url...
             var storedURL = recordList[i].url;
             storedURL = mainWindow.extractRootDomain(storedURL);
@@ -595,7 +638,9 @@ var mainPageHelper = {
 
             var currentURL = mainWindow.currentPageURL;
             currentURL = mainWindow.extractRootDomain(currentURL);
+
             var currentURLRegExp = new RegExp(currentURL, 'i');
+
 
             // var bool1 = currentURLRegExp.test(storedURL);
             var bool2 = currentURLRegExp.test(storedURL);
@@ -608,6 +653,7 @@ var mainPageHelper = {
                 currentListIndex[currentListIndex.length] = i;
             }
             else {
+
                 otherListIndex[otherListIndex.length] = i;
             }
         }
@@ -626,6 +672,7 @@ var mainPageHelper = {
         mainPageContent = mainDiv;
 
         //Current Tab Section
+
         var currentTabSection = $('<div></div');
         currentTabSection.addClass('popup-list-section');
         currentTabSection.append(addNewItemHelper.generateContentSectionHeader("Suggested Login"));
@@ -641,6 +688,7 @@ var mainPageHelper = {
             for (var i = 0; i < currentListIndex.length; i++) { //Append correponsding item
                 var currentItem = (mainWindow.recordList[currentListIndex[i]]);
                 currentTabList.append(mainPageHelper.generateMainPageView(currentItem, currentListIndex[i]));
+
             }
         }
 
@@ -648,6 +696,7 @@ var mainPageHelper = {
         //End of Currentab Section
 
         //Current Tab Section
+
         var otherTabSection = $('<div></div');
         otherTabSection.addClass('popup-list-section');
         otherTabSection.append(addNewItemHelper.generateContentSectionHeader("Others"));
@@ -665,6 +714,7 @@ var mainPageHelper = {
                 var currentItem = (mainWindow.recordList[otherListIndex[i]]);
                 otherTabList.append(mainPageHelper.generateMainPageView(currentItem, otherListIndex[i]));
 
+
             }
         }
         //End of other tab section
@@ -675,6 +725,7 @@ var mainPageHelper = {
         mainPageHelper.contentHead.append(mainDiv); //Append the final form to the main view
 
         //Synchonise and reset most stuff
+
         if (mainWindow.searchEmptyDiv) {
             mainWindow.searchEmptyDiv.css('display', 'none'); //Hide no search result
         }
@@ -703,10 +754,12 @@ var mainPageHelper = {
                     }
                     else {
                         instance.css('display', 'none');
+
                     }
 
                     return;
                 }
+
 
                 if (paraReg.test(mainWindow.recordList[instance.attr('id')].username) || paraReg.test(mainWindow.recordList[instance.attr('id')].name)) {
                     instance.css('display', 'flex');
@@ -831,6 +884,7 @@ var mainPageHelper = {
         return div;
     },
 
+
     //Generate Tool Entry
     generateToolPageEntry: function (icon, title, message, color) {
         var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
@@ -860,6 +914,39 @@ var mainPageHelper = {
 
         //Logo Section
         var logoDiv = $('<div></div>');
+
+        logoDiv.css('cursor','pointer');
+        logoDiv.attr('title','Launch Website');
+        logoDiv.click(function(){ //Open Website
+            var win = window.open(currentItem.url, '_blank');
+            win.focus();
+        });
+        logoDiv.css('padding','0px 10px 0px 0px');
+        var img = $('<img></img>');
+        img.attr('src',currentItem.favicon);
+        img.attr('width','24');
+        img.attr('height','24');
+        // img.css('border-radius','50%');
+        logoDiv.append(img);
+        div.prepend(logoDiv);
+
+        //Action Section
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.username,'fa-user','Copy Username'));
+        div.append(addNewItemHelper.generateContentSectionCopyContent(currentItem.password,'fa-key','Copy Password'));
+        div.append(addNewItemHelper.generateContentSectionEditContent(currentItem,index));
+
+        return div;
+    },
+
+    generateMainPageViewNoItem: function(){
+        var div = addNewItemHelper.generateContentSectionStandardDiv();//Div
+        div.attr('id','-1');
+        div.addClass('popup-record-div');
+
+        var noitemLabel = $('<label>There is no item on the list.</label>');
+        div.append(noitemLabel);
+
+
         var logo = $('<div></div>');
         logo.addClass('fa');
         logo.addClass(icon);
@@ -1217,7 +1304,9 @@ var addNewItemHelper = {
         addNewItemContent.css('height', "calc(100% - 45px)");
         addNewItemContent.css('top', "45px");
         addNewItemContent.css('overflow', "auto");
+
         addNewItemContent.css('background', "gainsboro");
+
         addNewItemContent.attr('id', this.divId);
         addNewItemDiv.append(addNewItemContent);
 
@@ -1271,6 +1360,7 @@ var addNewItemHelper = {
             var favIconHeader = this.generateContentSectionStandardHeader("Display Icon URL");
 
             var favIconDiv2 = $('<div></div>');
+
             favIconDiv2.css("display", "flex");
             var favIconDisplay = $('<img></img>');
             favIconDisplay.css("width", "24px");
@@ -1287,10 +1377,12 @@ var addNewItemHelper = {
             });
 
             if (type === addNewItemHelper.edit) {
+
                 var item = mainWindow.recordList[index];
 
                 favIconURLInput.val(item.favicon);
             }
+
             else {
                 favIconURLInput.val(mainWindow.currentPageFavIconURL);
             }
@@ -1298,6 +1390,7 @@ var addNewItemHelper = {
             favIconDisplay.attr('src', favIconURLInput.val());
             if (favIconURLInput.val() === '') {
                 favIconDisplay.attr('src', "/icons/favicon-32x32.png");
+
             }
 
             favIconDiv2.append(favIconDisplay);
@@ -1333,6 +1426,7 @@ var addNewItemHelper = {
 
         /*Delete Section*/
         var addNewItemDeleteSection;
+
         if (type === addNewItemHelper.edit) {
             //Delete Functionality
             addNewItemDeleteSection = $('<div></div');//Section Note
@@ -1341,6 +1435,7 @@ var addNewItemHelper = {
 
             var addNewItemDeleteList = $('<div></div>');
             addNewItemDeleteList.css('border-top', '2px solid lightgrey');
+
 
             var addNewDeleteFunction = this.generateDeleteSection(index); //Delete 
             addNewItemDeleteList.append(addNewDeleteFunction);
@@ -1365,6 +1460,7 @@ var addNewItemHelper = {
         /*End of Auto filling in form logic */
 
         parent.append(addNewItemDiv); //Add generated tab to parent
+
         if (index >= 0) { //Punch in all the correct value according to index
             var item = mainWindow.recordList[index];
 
@@ -1376,12 +1472,14 @@ var addNewItemHelper = {
             addNewItemDiv.find('#' + addNewItemHelper.favIconId).val(item.favicon);
         }
 
+
         //Cache the created window
         if (type === addNewItemHelper.view)
             mainWindow.addNewItemView = addNewItemDiv;
         else if (type === addNewItemHelper.edit)
             mainWindow.addNewItemEdit = addNewItemDiv;
         else
+
             mainWindow.addNewItemWindow = addNewItemDiv;
 
         setTimeout(function () { //Move window to the top
@@ -1391,6 +1489,7 @@ var addNewItemHelper = {
                 mainWindow.addNewItemEdit.css('top', '0%');
             else
                 mainWindow.addNewItemWindow.css('top', '0%');
+
         }, 100);
     },
 
@@ -1526,6 +1625,7 @@ var addNewItemHelper = {
         returnResult.hover(
             function () {
                 returnResult.css('color', mainWindow.colorBlackWhiten);
+
             },
             function () {
                 returnResult.css('color', 'black');
@@ -1601,6 +1701,7 @@ var addNewItemHelper = {
     },
 
     generatePasswordGenerator(inputField) {
+
         var returnResult = $('<div></div>');
         returnResult.css('background-color', 'white');
         returnResult.css('padding', '10px 10px');
@@ -1644,6 +1745,7 @@ var addNewItemHelper = {
         return returnResult;
     },
 
+
     //Specific Implementation
     generateDeleteSection(index) {
         var returnResult = $('<div></div>');
@@ -1672,6 +1774,7 @@ var addNewItemHelper = {
                 mainWindow.addNewItemEdit = null;
             }, 500);
 
+
         });
 
         var div = $("<div></div>");
@@ -1679,16 +1782,20 @@ var addNewItemHelper = {
 
         var labelName = "Delete Item";
         var label = $('<label>' + labelName + '</label>');
+
         label.css('color', 'red');
         label.css('cursor', 'pointer');
         label.css('font-size', '13px');
         label.css('display', 'inline');
         label.css('margin-left', '5px');
 
+
         var deleteIcon = $('<i></i>');
         deleteIcon.addClass('fa');
         deleteIcon.addClass('fa-trash');
+
         deleteIcon.css('color', 'red');
+
 
         div.append(deleteIcon);
         div.append(label);
